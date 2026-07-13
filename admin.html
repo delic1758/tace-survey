@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 대시보드 — TACE 안내문 평가</title>
+<script src="data.js"></script>
+<script src="config.js"></script>
+<style>
+  :root{
+    --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,.10);
+    --s1:#2a78d6; --seq200:#9ec5f4; --seq350:#5598e7; --seq500:#256abf;
+    --good:#0ca30c; --goodtext:#006300; --critical:#d03b3b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.10);
+      --s1:#3987e5; --seq200:#184f95; --seq350:#2a78d6; --seq500:#6da7ec; --goodtext:#0ca30c; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    background:var(--page); color:var(--ink); font-size:15px; line-height:1.55;}
+  .wrap{max-width:960px; margin:0 auto; padding:20px 16px 60px;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px;}
+  h1{font-size:20px; margin:0;}
+  h2{font-size:16px; margin:0 0 4px;}
+  .sub{color:var(--ink2); font-size:13px; margin:0 0 14px;}
+  .row{display:flex; gap:12px; flex-wrap:wrap;}
+  .tile{flex:1; min-width:130px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px;}
+  .tile .v{font-size:28px; font-weight:800; letter-spacing:-.02em;}
+  .tile .l{font-size:12.5px; color:var(--ink2); margin-top:2px;}
+  .tile .d{font-size:12px; color:var(--goodtext); font-weight:600;}
+  input,button{font-family:inherit;}
+  input{width:100%; padding:12px 14px; font-size:16px; border:1.5px solid var(--grid); border-radius:10px; background:var(--surface); color:var(--ink);}
+  .btn{padding:12px 22px; font-size:15px; font-weight:700; border:none; border-radius:10px; background:var(--s1); color:#fff; cursor:pointer;}
+  .btn.ghost{background:var(--surface); color:var(--ink2); border:1.5px solid var(--grid); font-weight:600;}
+  .err{color:var(--critical); font-size:14px; min-height:20px; margin-top:8px;}
+  .hidden{display:none !important;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{font-size:12px; color:var(--muted); text-align:left; font-weight:600; padding:8px 10px; border-bottom:1px solid var(--grid);}
+  td{padding:8px 10px; border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums;}
+  tr:last-child td{border-bottom:none;}
+  .mini{height:8px; background:var(--grid); border-radius:4px; overflow:hidden; min-width:70px;}
+  .mini>div{height:100%; background:var(--s1); border-radius:4px;}
+  /* bar chart */
+  .bchart{display:flex; flex-direction:column; gap:9px; margin-top:6px;}
+  .brow{display:grid; grid-template-columns:200px 1fr 44px; align-items:center; gap:10px;}
+  .brow .bl{font-size:12.5px; color:var(--ink2); text-align:right; line-height:1.3;}
+  .btrack{position:relative; height:16px; background:transparent; border-left:2px solid var(--baseline);}
+  .bfill{position:absolute; left:0; top:2px; height:12px; background:var(--s1); border-radius:0 4px 4px 0; transition:width .4s;}
+  .bfill.rev{background:var(--seq350);}
+  .bval{font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .brow:hover .bfill{filter:brightness(1.12);}
+  /* heatmap */
+  .hm{display:grid; grid-template-columns:repeat(10,1fr); gap:2px; margin-top:8px;}
+  .hm div{aspect-ratio:1.35; border-radius:4px; display:flex; align-items:center; justify-content:center;
+    font-size:10.5px; font-weight:600; color:var(--muted); background:var(--surface); border:1px solid var(--grid); cursor:default;}
+  .hm .c1{background:var(--seq200); border-color:transparent; color:#0b0b0b;}
+  .hm .c2{background:var(--seq350); border-color:transparent; color:#fff;}
+  .hm .c3{background:var(--seq500); border-color:transparent; color:#fff;}
+  .legend{display:flex; gap:14px; font-size:12px; color:var(--ink2); margin-top:10px; flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .sw{width:12px; height:12px; border-radius:3px; border:1px solid var(--grid); display:inline-block;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;}
+  .comment-doc{color:var(--s1); font-weight:700; white-space:nowrap;}
+  .updated{font-size:12.5px; color:var(--muted);}
+  .scroll{overflow-x:auto;}
+  @media (max-width:640px){ .brow{grid-template-columns:130px 1fr 40px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 로그인 -->
+  <div id="view-login">
+    <div class="card" style="max-width:420px; margin:60px auto;">
+      <h1>관리자 로그인</h1>
+      <p class="sub">TACE 안내문 평가 — 대시보드</p>
+      <input id="admin-pw" type="password" placeholder="관리자 비밀번호" autocomplete="off">
+      <button class="btn" id="btn-login" style="width:100%; margin-top:14px;">로그인</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+
+  <!-- 대시보드 -->
+  <div id="view-dash" class="hidden">
+    <div class="topbar">
+      <div><h1>평가 진행 대시보드</h1><span class="updated" id="updated"></span></div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn ghost" id="btn-csv">CSV 다운로드</button>
+        <button class="btn" id="btn-refresh">새로고침</button>
+      </div>
+    </div>
+
+    <div class="row" id="tiles"></div>
+
+    <div class="card">
+      <h2>참여자별 진행 현황 (30명)</h2>
+      <p class="sub">각 참여자는 배정된 안내문 10건을 평가합니다.</p>
+      <div class="scroll"><table id="ptable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>문서별 평가 커버리지 (100건)</h2>
+      <p class="sub">각 칸은 문서 1건 · 숫자는 문서번호 · 색이 진할수록 평가 완료 인원이 많음 (목표: 문서당 3명)</p>
+      <div class="hm" id="heatmap"></div>
+      <div class="legend">
+        <span><span class="sw"></span>0명</span>
+        <span><span class="sw" style="background:var(--seq200); border-color:transparent"></span>1명</span>
+        <span><span class="sw" style="background:var(--seq350); border-color:transparent"></span>2명</span>
+        <span><span class="sw" style="background:var(--seq500); border-color:transparent"></span>3명 완료</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>문항별 평균 (5점 척도)</h2>
+      <p class="sub">Q4·Q5는 역채점 문항 — 연한 막대는 <b>환산 점수(6−원점수)</b> 기준입니다. 괄호 안은 표준편차.</p>
+      <div class="bchart" id="qchart"></div>
+    </div>
+
+    <div class="row">
+      <div class="tile"><div class="v" id="m-boffel">–</div><div class="l">Böffel 이해도 블록 평균 (Q1~Q5, 역채점 반영)</div></div>
+      <div class="tile"><div class="v" id="m-song">–</div><div class="l">Song 4C+ 블록 평균 (Q6~Q8)</div></div>
+      <div class="tile"><div class="v" id="m-total">–</div><div class="l">전체 평균 (8문항, 역채점 반영)</div></div>
+    </div>
+
+    <div class="card">
+      <h2>서술형 응답 — 이해 어려운 부분</h2>
+      <p class="sub" id="csub"></p>
+      <div class="scroll"><table id="ctable"></table></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let PW=null, DATA=null;
+
+async function api(payload){
+  const res=await fetch(CONFIG.SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+  const j=await res.json(); if(!j.ok) throw new Error(j.error||'오류'); return j;
+}
+
+$('btn-login').onclick=login;
+$('admin-pw').addEventListener('keydown',e=>{ if(e.key==='Enter') login(); });
+async function login(){
+  const pw=$('admin-pw').value.trim();
+  $('login-err').textContent='';
+  $('btn-login').disabled=true; $('btn-login').textContent='확인 중…';
+  try{
+    DATA=await api({action:'admin',pw}); PW=pw;
+    render(); $('view-login').classList.add('hidden'); $('view-dash').classList.remove('hidden');
+  }catch(e){ $('login-err').textContent=e.message; }
+  $('btn-login').disabled=false; $('btn-login').textContent='로그인';
+}
+$('btn-refresh').onclick=async()=>{
+  $('btn-refresh').textContent='불러오는 중…';
+  try{ DATA=await api({action:'admin',pw:PW}); render(); }catch(e){ alert(e.message); }
+  $('btn-refresh').textContent='새로고침';
+};
+
+const REV=[false,false,false,true,true,false,false,false];
+const adj=(qi,v)=>REV[qi]?6-v:v;
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
+const sd=a=>{ if(a.length<2) return NaN; const m=mean(a); return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)); };
+const f1=x=>isNaN(x)?'–':x.toFixed(2);
+
+function render(){
+  const R=DATA.responses, P=DATA.participants;
+  const total=R.length, pct=Math.round(total/300*100);
+
+  // per participant
+  const byP={}; R.forEach(r=>{ (byP[r.pid]=byP[r.pid]||[]).push(r); });
+  const started=P.length;
+  const finished=Object.values(byP).filter(a=>a.length>=10).length;
+  const lastTs=R.map(r=>r.last).filter(Boolean).sort().pop();
+
+  $('updated').textContent='기준 시각: '+new Date().toLocaleString('ko-KR');
+  $('tiles').innerHTML=`
+    <div class="tile"><div class="v">${total} <span style="font-size:15px; color:var(--muted); font-weight:600">/ 300</span></div>
+      <div class="l">수집된 평가</div><div class="d">${pct}% 완료</div></div>
+    <div class="tile"><div class="v">${started} <span style="font-size:15px; color:var(--muted); font-weight:600">/ 30</span></div>
+      <div class="l">참여 시작 인원</div></div>
+    <div class="tile"><div class="v">${finished} <span style="font-size:15px; color:var(--muted); font-weight:600">/ 30</span></div>
+      <div class="l">10건 완료 인원</div></div>
+    <div class="tile"><div class="v" style="font-size:17px; padding-top:6px">${lastTs?new Date(lastTs).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'–'}</div>
+      <div class="l">마지막 응답 시각</div></div>`;
+
+  // participant table
+  const demoMap={}; P.forEach(p=>demoMap[p.pid]=p);
+  let ph=`<tr><th>ID</th><th>나이</th><th>성별</th><th style="width:38%">진행</th><th>완료</th><th>최근 활동</th></tr>`;
+  Object.keys(SURVEY.assignment).forEach(pid=>{
+    const rs=byP[pid]||[], d=demoMap[pid];
+    const last=rs.map(r=>r.last).filter(Boolean).sort().pop();
+    ph+=`<tr><td><b>${pid}</b></td><td>${d?d.age:'<span style="color:var(--muted)">–</span>'}</td>
+      <td>${d?d.gender:'<span style="color:var(--muted)">미시작</span>'}</td>
+      <td><div class="mini"><div style="width:${rs.length*10}%"></div></div></td>
+      <td>${rs.length}/10</td>
+      <td class="updated">${last?new Date(last).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'–'}</td></tr>`;
+  });
+  $('ptable').innerHTML=ph;
+
+  // heatmap
+  const byDoc={}; R.forEach(r=>{ byDoc[r.doc]=(byDoc[r.doc]||0)+1; });
+  let hh='';
+  for(let d=1; d<=100; d++){
+    const c=Math.min(byDoc[d]||0,3);
+    hh+=`<div class="${c?'c'+c:''}" title="문서 ${d}번 — ${byDoc[d]||0}/3명 평가">${d}</div>`;
+  }
+  $('heatmap').innerHTML=hh;
+
+  // question means
+  let qh='';
+  SURVEY.questions.forEach((q,qi)=>{
+    const raw=R.map(r=>r.q[qi]).filter(v=>v>=1&&v<=5);
+    const use=raw.map(v=>adj(qi,v));
+    const m=mean(use), s=sd(use);
+    const w=isNaN(m)?0:(m/5*100);
+    qh+=`<div class="brow" title="Q${qi+1} 응답 ${raw.length}건 · 평균 ${f1(m)} (SD ${f1(s)})${REV[qi]?' · 역채점 환산':''}">
+      <div class="bl"><b>Q${qi+1}</b> ${q.text}${REV[qi]?' <span style="color:var(--muted)">(역)</span>':''}</div>
+      <div class="btrack"><div class="bfill ${REV[qi]?'rev':''}" style="width:${w}%"></div></div>
+      <div class="bval">${f1(m)}<span style="color:var(--muted); font-weight:400; font-size:11px"> (${f1(s)})</span></div></div>`;
+  });
+  $('qchart').innerHTML=qh;
+
+  // block means
+  const boffel=[], song=[], all=[];
+  R.forEach(r=>{ r.q.forEach((v,qi)=>{ if(!(v>=1&&v<=5)) return; const a=adj(qi,v);
+    all.push(a); if(qi<5) boffel.push(a); else song.push(a); }); });
+  $('m-boffel').textContent=f1(mean(boffel));
+  $('m-song').textContent=f1(mean(song));
+  $('m-total').textContent=f1(mean(all));
+
+  // comments
+  const cs=R.filter(r=>r.comment && r.comment.trim());
+  $('csub').textContent=cs.length? cs.length+'건의 서술형 응답이 있습니다.':'아직 서술형 응답이 없습니다.';
+  let ch=`<tr><th>참여자</th><th>문서</th><th>내용</th></tr>`;
+  cs.sort((a,b)=>a.doc-b.doc).forEach(r=>{
+    ch+=`<tr><td>${r.pid}</td><td class="comment-doc">#${r.doc}</td><td>${esc(r.comment)}</td></tr>`;
+  });
+  $('ctable').innerHTML=cs.length?ch:'';
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* CSV: 원자료 + 역채점 환산 + 블록 평균 */
+$('btn-csv').onclick=()=>{
+  const head=['참여자ID','나이','성별','문서번호','Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8',
+    'Q4_역채점','Q5_역채점','Boffel평균(역반영)','Song평균','전체평균(역반영)','서술형','최초제출','최근수정'];
+  const demoMap={}; DATA.participants.forEach(p=>demoMap[p.pid]=p);
+  const rows=DATA.responses.map(r=>{
+    const d=demoMap[r.pid]||{}, q=r.q;
+    const a=q.map((v,qi)=>adj(qi,v));
+    const bo=mean(a.slice(0,5)), so=mean(a.slice(5)), tot=mean(a);
+    return [r.pid,d.age||'',d.gender||'',r.doc,...q,a[3],a[4],f1(bo),f1(so),f1(tot),
+      '"'+(r.comment||'').replace(/"/g,'""')+'"',r.first,r.last];
+  });
+  const csv='﻿'+[head.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const aEl=document.createElement('a');
+  aEl.href=URL.createObjectURL(blob);
+  aEl.download='TACE_일반인평가_응답.csv';
+  aEl.click();
+};
+</script>
+</body>
+</html>

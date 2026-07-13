@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TACE 안내문 평가</title>
+<script src="data.js"></script>
+<script src="config.js"></script>
+<style>
+  :root{
+    --bg:#f9f9f7; --surface:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --line:#e1e0d9; --blue:#2a78d6; --blue-dark:#1c5cab; --blue-light:#e8f1fc;
+    --good:#0ca30c; --red:#d03b3b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0; font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+       background:var(--bg); color:var(--ink); font-size:16px; line-height:1.6;}
+  .wrap{max-width:640px; margin:0 auto; padding:16px 16px 48px;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:14px;}
+  h1{font-size:20px; margin:0 0 4px;}
+  h2{font-size:17px; margin:0 0 12px;}
+  .sub{color:var(--ink2); font-size:14px; margin:0 0 16px;}
+  label{display:block; font-weight:600; font-size:14px; margin:14px 0 6px;}
+  input,select,textarea{width:100%; padding:12px 14px; font-size:16px; border:1.5px solid var(--line);
+    border-radius:10px; background:#fff; font-family:inherit;}
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--blue);}
+  textarea{resize:vertical; min-height:90px;}
+  .btn{display:block; width:100%; padding:14px; font-size:16px; font-weight:700; border:none;
+    border-radius:10px; background:var(--blue); color:#fff; cursor:pointer; margin-top:18px;}
+  .btn:active{background:var(--blue-dark);}
+  .btn[disabled]{background:#c3c2b7; cursor:default;}
+  .btn.ghost{background:#fff; color:var(--ink2); border:1.5px solid var(--line); font-weight:600;}
+  .err{color:var(--red); font-size:14px; margin-top:10px; min-height:20px;}
+  .hidden{display:none !important;}
+  /* progress */
+  .pbar{height:10px; background:var(--line); border-radius:5px; overflow:hidden;}
+  .pbar>div{height:100%; background:var(--blue); border-radius:5px; transition:width .3s;}
+  .pmeta{display:flex; justify-content:space-between; font-size:13px; color:var(--ink2); margin-top:6px;}
+  /* doc list */
+  .doclist{display:flex; flex-direction:column; gap:8px;}
+  .docitem{display:flex; align-items:center; justify-content:space-between; padding:14px 16px;
+    background:var(--surface); border:1.5px solid var(--line); border-radius:12px; cursor:pointer; font-size:15px;}
+  .docitem:active{border-color:var(--blue);}
+  .docitem.done{border-color:#bfe3bf; background:#f4fbf4;}
+  .docitem .st{font-size:13px; font-weight:700; color:var(--muted);}
+  .docitem.done .st{color:var(--good);}
+  .docitem .arrow{color:var(--muted); margin-left:8px;}
+  /* doc text */
+  .doctext{white-space:pre-wrap; font-size:15.5px; line-height:1.75; background:var(--blue-light);
+    border-radius:12px; padding:16px; max-height:45vh; overflow-y:auto; border:1px solid #cfe2f7;}
+  .qblock{padding:16px 0; border-bottom:1px solid var(--line);}
+  .qblock:last-of-type{border-bottom:none;}
+  .qtext{font-weight:600; font-size:15px; margin-bottom:10px;}
+  .qnum{color:var(--blue); font-weight:700; margin-right:4px;}
+  .likert{display:flex; gap:6px;}
+  .likert button{flex:1; padding:10px 0 8px; border:1.5px solid var(--line); background:#fff;
+    border-radius:10px; cursor:pointer; font-family:inherit;}
+  .likert button .n{display:block; font-size:17px; font-weight:700; color:var(--ink);}
+  .likert button .t{display:block; font-size:10px; color:var(--muted); margin-top:2px; line-height:1.3;}
+  .likert button.sel{border-color:var(--blue); background:var(--blue); }
+  .likert button.sel .n,.likert button.sel .t{color:#fff;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .topbar .back{background:none; border:none; color:var(--blue); font-size:15px; font-weight:600; cursor:pointer; padding:6px 0;}
+  .pill{font-size:13px; color:var(--ink2); background:var(--surface); border:1px solid var(--line);
+    padding:4px 12px; border-radius:999px;}
+  .note{font-size:13px; color:var(--muted); margin-top:8px;}
+  .bigcheck{font-size:52px; text-align:center; margin:10px 0;}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink);
+    color:#fff; padding:10px 20px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:9;}
+  .toast.show{opacity:.94;}
+  .spin{display:inline-block; width:18px; height:18px; border:2.5px solid rgba(255,255,255,.4);
+    border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; vertical-align:-4px;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== 로그인 ===== -->
+  <div id="view-login">
+    <div class="card">
+      <h1>TACE 환자 안내문 평가</h1>
+      <p class="sub">안내받은 참여자 ID와 비밀번호로 로그인해 주세요.</p>
+      <label>참여자 ID</label>
+      <select id="login-pid"></select>
+      <label>비밀번호</label>
+      <input id="login-pw" type="text" inputmode="latin" autocapitalize="none" autocomplete="off" placeholder="예: ab12cd">
+      <button class="btn" id="btn-login">로그인</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+
+  <!-- ===== 참여자 정보 ===== -->
+  <div id="view-demo" class="hidden">
+    <div class="card">
+      <h2>참여자 정보</h2>
+      <p class="sub">통계 목적으로만 사용됩니다. 처음 한 번만 입력합니다.</p>
+      <label>나이 (만)</label>
+      <input id="demo-age" type="number" inputmode="numeric" min="18" max="100" placeholder="예: 45">
+      <label>성별</label>
+      <select id="demo-gender">
+        <option value="">선택하세요</option>
+        <option>남성</option><option>여성</option><option>기타/응답 거부</option>
+      </select>
+      <button class="btn" id="btn-demo">저장하고 시작하기</button>
+      <div class="err" id="demo-err"></div>
+    </div>
+  </div>
+
+  <!-- ===== 홈(배정 목록) ===== -->
+  <div id="view-home" class="hidden">
+    <div class="topbar">
+      <span class="pill" id="home-pid"></span>
+      <button class="back" id="btn-logout">로그아웃</button>
+    </div>
+    <div class="card">
+      <h2>나의 진행 상황</h2>
+      <div class="pbar"><div id="home-bar" style="width:0%"></div></div>
+      <div class="pmeta"><span id="home-cnt">0 / 10 완료</span><span id="home-pct">0%</span></div>
+    </div>
+    <div class="card" id="home-guide">
+      <h2>평가 방법</h2>
+      <p class="sub" style="margin:0">
+        아래 <b>10개의 안내문</b>을 하나씩 열어 읽고, 8개 질문에 답해 주세요.
+        각 질문은 <b>1점(전혀 아니다) ~ 5점(매우 그렇다)</b>으로 응답합니다.
+        중간에 종료해도 제출한 것까지 저장되며, 다시 로그인하면 이어서 할 수 있습니다.</p>
+    </div>
+    <div class="doclist" id="doclist"></div>
+    <div class="card hidden" id="home-done" style="text-align:center; border-color:#bfe3bf; background:#f4fbf4;">
+      <div class="bigcheck">🎉</div>
+      <h2 style="margin-bottom:4px">모든 평가를 완료했습니다!</h2>
+      <p class="sub" style="margin:0">참여해 주셔서 감사합니다. 이 창을 닫으셔도 됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ===== 평가 화면 ===== -->
+  <div id="view-eval" class="hidden">
+    <div class="topbar">
+      <button class="back" id="btn-back">← 목록으로</button>
+      <span class="pill" id="eval-pos"></span>
+    </div>
+    <div class="card">
+      <h2 id="eval-title"></h2>
+      <p class="sub" style="margin-bottom:10px">아래 안내문을 끝까지 읽어 주세요. (스크롤 가능)</p>
+      <div class="doctext" id="eval-text"></div>
+    </div>
+    <div class="card">
+      <h2>질문 (8문항)</h2>
+      <p class="sub" style="margin-bottom:0">방금 읽은 안내문에 대해 느낀 그대로 답해 주세요.</p>
+      <div id="eval-qs"></div>
+      <label style="margin-top:18px">이해하기 어려웠던 부분이 있다면 적어 주세요 <span style="color:var(--muted); font-weight:400">(선택)</span></label>
+      <textarea id="eval-comment" placeholder="예: '색전술'이라는 단어가 어려웠어요"></textarea>
+      <button class="btn" id="btn-submit">제출하기</button>
+      <div class="err" id="eval-err"></div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const VIEWS=['view-login','view-demo','view-home','view-eval'];
+function show(v){ VIEWS.forEach(x=>$(x).classList.toggle('hidden',x!==v)); window.scrollTo(0,0); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+let S={ pid:null, pw:null, docs:[], answers:{} }; // answers[doc]={q:[..8], comment}
+
+async function api(payload){
+  if(!CONFIG.SCRIPT_URL || CONFIG.SCRIPT_URL.indexOf('http')!==0)
+    throw new Error('앱이 아직 설정되지 않았습니다. 관리자에게 문의하세요.');
+  const res=await fetch(CONFIG.SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
+  const j=await res.json();
+  if(!j.ok) throw new Error(j.error||'오류가 발생했습니다.');
+  return j;
+}
+function busy(btn,on,txt){ btn.disabled=on; btn.innerHTML=on?'<span class="spin"></span>  '+txt:btn.dataset.label; }
+
+/* ---------- 로그인 ---------- */
+(function init(){
+  const sel=$('login-pid');
+  Object.keys(SURVEY.assignment).forEach(p=>{ const o=document.createElement('option'); o.value=o.textContent=p; sel.appendChild(o); });
+  const saved=localStorage.getItem('tace_login');
+  if(saved){ try{ const s=JSON.parse(saved); sel.value=s.pid; $('login-pw').value=s.pw; }catch(e){} }
+  ['btn-login','btn-demo','btn-submit'].forEach(id=>{ $(id).dataset.label=$(id).textContent; });
+})();
+
+$('btn-login').onclick=async()=>{
+  const pid=$('login-pid').value, pw=$('login-pw').value.trim();
+  $('login-err').textContent='';
+  if(!pw){ $('login-err').textContent='비밀번호를 입력해 주세요.'; return; }
+  busy($('btn-login'),true,'확인 중…');
+  try{
+    const r=await api({action:'login',pid,pw});
+    S.pid=pid; S.pw=pw; S.docs=SURVEY.assignment[pid]; S.answers={};
+    (r.responses||[]).forEach(x=>{ S.answers[x.doc]={q:x.q,comment:x.comment}; });
+    localStorage.setItem('tace_login',JSON.stringify({pid,pw}));
+    if(r.demo && r.demo.age){ renderHome(); show('view-home'); }
+    else show('view-demo');
+  }catch(e){ $('login-err').textContent=e.message; }
+  busy($('btn-login'),false);
+};
+
+/* ---------- 참여자 정보 ---------- */
+$('btn-demo').onclick=async()=>{
+  const age=$('demo-age').value, gender=$('demo-gender').value;
+  $('demo-err').textContent='';
+  if(!age||age<18||age>110){ $('demo-err').textContent='나이를 확인해 주세요.'; return; }
+  if(!gender){ $('demo-err').textContent='성별을 선택해 주세요.'; return; }
+  busy($('btn-demo'),true,'저장 중…');
+  try{
+    await api({action:'demo',pid:S.pid,pw:S.pw,age:Number(age),gender});
+    renderHome(); show('view-home');
+  }catch(e){ $('demo-err').textContent=e.message; }
+  busy($('btn-demo'),false);
+};
+
+/* ---------- 홈 ---------- */
+function renderHome(){
+  $('home-pid').textContent='참여자 '+S.pid;
+  const list=$('doclist'); list.innerHTML='';
+  let done=0;
+  S.docs.forEach((doc,i)=>{
+    const isDone=!!S.answers[doc]; if(isDone) done++;
+    const d=document.createElement('div');
+    d.className='docitem'+(isDone?' done':'');
+    d.innerHTML=`<span><b>안내문 ${i+1}</b></span>
+      <span><span class="st">${isDone?'✓ 완료':'미완료'}</span><span class="arrow">›</span></span>`;
+    d.onclick=()=>openEval(i);
+    list.appendChild(d);
+  });
+  $('home-bar').style.width=done*10+'%';
+  $('home-cnt').textContent=done+' / 10 완료';
+  $('home-pct').textContent=done*10+'%';
+  $('home-done').classList.toggle('hidden',done<10);
+  $('home-guide').classList.toggle('hidden',done>=10);
+}
+$('btn-logout').onclick=()=>{ S={pid:null,pw:null,docs:[],answers:{}}; show('view-login'); };
+
+/* ---------- 평가 ---------- */
+let cur=null; // index in S.docs
+function openEval(i){
+  cur=i; const doc=S.docs[i];
+  $('eval-title').textContent='안내문 '+(i+1);
+  $('eval-pos').textContent=(i+1)+' / 10';
+  $('eval-text').textContent=SURVEY.docs[doc];
+  $('eval-err').textContent='';
+  const saved=S.answers[doc];
+  const qs=$('eval-qs'); qs.innerHTML='';
+  SURVEY.questions.forEach((q,qi)=>{
+    const b=document.createElement('div'); b.className='qblock';
+    b.innerHTML=`<div class="qtext"><span class="qnum">Q${qi+1}.</span>${q.text}</div>`;
+    const row=document.createElement('div'); row.className='likert';
+    for(let v=1;v<=5;v++){
+      const btn=document.createElement('button'); btn.type='button';
+      btn.innerHTML=`<span class="n">${v}</span><span class="t">${SURVEY.scale[v-1]}</span>`;
+      if(saved && saved.q[qi]===v) btn.classList.add('sel');
+      btn.onclick=()=>{ [...row.children].forEach(c=>c.classList.remove('sel')); btn.classList.add('sel'); btn.dataset.v=v; row.dataset.val=v; };
+      row.appendChild(btn);
+    }
+    if(saved) row.dataset.val=saved.q[qi];
+    qs.appendChild(b); b.appendChild(row);
+  });
+  $('eval-comment').value=saved?saved.comment:'';
+  $('btn-submit').textContent=saved?'수정 제출하기':'제출하기';
+  $('btn-submit').dataset.label=$('btn-submit').textContent;
+  show('view-eval');
+}
+$('btn-back').onclick=()=>{ renderHome(); show('view-home'); };
+
+$('btn-submit').onclick=async()=>{
+  const doc=S.docs[cur];
+  const rows=[...document.querySelectorAll('#eval-qs .likert')];
+  const q=rows.map(r=>Number(r.dataset.val||0));
+  const missing=q.findIndex(v=>!v);
+  if(missing>=0){ $('eval-err').textContent=`Q${missing+1} 문항에 응답해 주세요.`;
+    rows[missing].scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  const comment=$('eval-comment').value.trim();
+  busy($('btn-submit'),true,'저장 중…');
+  try{
+    await api({action:'submit',pid:S.pid,pw:S.pw,doc,q,comment});
+    S.answers[doc]={q,comment};
+    toast('저장되었습니다 ✓');
+    renderHome(); show('view-home');
+  }catch(e){ $('eval-err').textContent='저장 실패: '+e.message+' (다시 시도해 주세요)'; }
+  busy($('btn-submit'),false);
+};
+</script>
+</body>
+</html>
