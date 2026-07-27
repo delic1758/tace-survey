@@ -10,7 +10,7 @@
   :root{
     --bg:#f9f9f7; --surface:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
     --line:#e1e0d9; --blue:#2a78d6; --blue-dark:#1c5cab; --blue-light:#e8f1fc;
-    --good:#0ca30c; --red:#d03b3b;
+    --good:#0ca30c; --red:#d03b3b; --warm:#fff8e6; --warmline:#f0dfae;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   body{margin:0; font-family:system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
@@ -32,11 +32,11 @@
   .btn.ghost{background:#fff; color:var(--ink2); border:1.5px solid var(--line); font-weight:600;}
   .err{color:var(--red); font-size:14px; margin-top:10px; min-height:20px;}
   .hidden{display:none !important;}
-  /* progress */
   .pbar{height:10px; background:var(--line); border-radius:5px; overflow:hidden;}
   .pbar>div{height:100%; background:var(--blue); border-radius:5px; transition:width .3s;}
   .pmeta{display:flex; justify-content:space-between; font-size:13px; color:var(--ink2); margin-top:6px;}
-  /* doc list */
+  .blockhead{font-size:13px; font-weight:700; color:var(--ink2); margin:16px 0 8px; letter-spacing:.02em;}
+  .blockhead:first-child{margin-top:4px;}
   .doclist{display:flex; flex-direction:column; gap:8px;}
   .docitem{display:flex; align-items:center; justify-content:space-between; padding:14px 16px;
     background:var(--surface); border:1.5px solid var(--line); border-radius:12px; cursor:pointer; font-size:15px;}
@@ -45,7 +45,8 @@
   .docitem .st{font-size:13px; font-weight:700; color:var(--muted);}
   .docitem.done .st{color:var(--good);}
   .docitem .arrow{color:var(--muted); margin-left:8px;}
-  /* doc text */
+  .rest{background:var(--warm); border:1px solid var(--warmline); border-radius:12px;
+    padding:14px 16px; margin:14px 0; font-size:14.5px; color:#6b5410; line-height:1.6;}
   .doctext{white-space:pre-wrap; font-size:15.5px; line-height:1.75; background:var(--blue-light);
     border-radius:12px; padding:16px; max-height:45vh; overflow-y:auto; border:1px solid #cfe2f7;}
   .qblock{padding:16px 0; border-bottom:1px solid var(--line);}
@@ -57,7 +58,7 @@
     border-radius:10px; cursor:pointer; font-family:inherit;}
   .likert button .n{display:block; font-size:17px; font-weight:700; color:var(--ink);}
   .likert button .t{display:block; font-size:10px; color:var(--muted); margin-top:2px; line-height:1.3;}
-  .likert button.sel{border-color:var(--blue); background:var(--blue); }
+  .likert button.sel{border-color:var(--blue); background:var(--blue);}
   .likert button.sel .n,.likert button.sel .t{color:#fff;}
   .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
   .topbar .back{background:none; border:none; color:var(--blue); font-size:15px; font-weight:600; cursor:pointer; padding:6px 0;}
@@ -116,14 +117,23 @@
     <div class="card">
       <h2>나의 진행 상황</h2>
       <div class="pbar"><div id="home-bar" style="width:0%"></div></div>
-      <div class="pmeta"><span id="home-cnt">0 / 10 완료</span><span id="home-pct">0%</span></div>
+      <div class="pmeta"><span id="home-cnt">0 / 20 완료</span><span id="home-pct">0%</span></div>
     </div>
     <div class="card" id="home-guide">
+      <h2>이렇게 상상하고 읽어 주세요</h2>
+      <p class="sub" style="margin:0 0 12px">
+        본인이 간암 시술을 받고 퇴원하는 환자 또는 그 보호자라고 가정하고,
+        이 안내문을 처음 받았다고 생각하면서 평가해 주십시오.</p>
       <h2>평가 방법</h2>
       <p class="sub" style="margin:0">
-        아래 <b>10개의 안내문</b>을 하나씩 열어 읽고, 8개 질문에 답해 주세요.
-        각 질문은 <b>1점(전혀 아니다) ~ 5점(매우 그렇다)</b>으로 응답합니다.
+        아래 <b>20개의 안내문</b>을 하나씩 열어 읽고, <b>9개 질문</b>에 답해 주세요.
+        각 질문은 <b>1점(전혀 아니다) ~ 5점(매우 그렇다)</b>으로 응답합니다.<br>
+        <b>1블록 10개</b>를 마치면 잠시 쉬었다가 <b>2블록</b>을 진행해 주세요. 한 번에 몰아서 하지 않으셔도 됩니다.<br>
         중간에 종료해도 제출한 것까지 저장되며, 다시 로그인하면 이어서 할 수 있습니다.</p>
+      <p class="note" style="margin-top:12px">
+        · 문서마다 내용과 문체가 조금씩 다를 수 있습니다. 어느 것이 더 낫다고 비교하려 하지 마시고, 각 문서를 읽은 그대로 평가해 주십시오.<br>
+        · 각 문항은 서로 다른 것을 묻습니다. 앞 문항의 답에 맞추려 하지 마시고 각 문장에 대해 느끼신 그대로 답해 주십시오.<br>
+        · 의학 지식이 없어도 됩니다. 모르는 내용이 있으면 그것 자체가 평가 결과입니다.</p>
     </div>
     <div class="doclist" id="doclist"></div>
     <div class="card hidden" id="home-done" style="text-align:center; border-color:#bfe3bf; background:#f4fbf4;">
@@ -145,7 +155,7 @@
       <div class="doctext" id="eval-text"></div>
     </div>
     <div class="card">
-      <h2>질문 (8문항)</h2>
+      <h2 id="eval-qhead">질문 (9문항)</h2>
       <p class="sub" style="margin-bottom:0">방금 읽은 안내문에 대해 느낀 그대로 답해 주세요.</p>
       <div id="eval-qs"></div>
       <label style="margin-top:18px">이해하기 어려웠던 부분이 있다면 적어 주세요 <span style="color:var(--muted); font-weight:400">(선택)</span></label>
@@ -161,10 +171,12 @@
 <script>
 const $=id=>document.getElementById(id);
 const VIEWS=['view-login','view-demo','view-home','view-eval'];
+const NQ=SURVEY.questions.length;          // 9
+const NTOTAL=SURVEY.per_participant;       // 20
 function show(v){ VIEWS.forEach(x=>$(x).classList.toggle('hidden',x!==v)); window.scrollTo(0,0); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
 
-let S={ pid:null, pw:null, docs:[], answers:{} }; // answers[doc]={q:[..8], comment}
+let S={ pid:null, pw:null, docs:[], answers:{} }; // docs=[{id,block,order}], answers[blind_id]={q:[..9],comment}
 
 async function api(payload){
   if(!CONFIG.SCRIPT_URL || CONFIG.SCRIPT_URL.indexOf('http')!==0)
@@ -176,12 +188,13 @@ async function api(payload){
 }
 function busy(btn,on,txt){ btn.disabled=on; btn.innerHTML=on?'<span class="spin"></span>  '+txt:btn.dataset.label; }
 
-/* ---------- 로그인 ---------- */
+/* ---------- 초기화 ---------- */
 (function init(){
   const sel=$('login-pid');
   Object.keys(SURVEY.assignment).forEach(p=>{ const o=document.createElement('option'); o.value=o.textContent=p; sel.appendChild(o); });
   const saved=localStorage.getItem('tace_login');
   if(saved){ try{ const s=JSON.parse(saved); sel.value=s.pid; $('login-pw').value=s.pw; }catch(e){} }
+  $('eval-qhead').textContent='질문 ('+NQ+'문항)';
   ['btn-login','btn-demo','btn-submit'].forEach(id=>{ $(id).dataset.label=$(id).textContent; });
 })();
 
@@ -219,43 +232,68 @@ $('btn-demo').onclick=async()=>{
 function renderHome(){
   $('home-pid').textContent='참여자 '+S.pid;
   const list=$('doclist'); list.innerHTML='';
-  let done=0;
-  S.docs.forEach((doc,i)=>{
-    const isDone=!!S.answers[doc]; if(isDone) done++;
-    const d=document.createElement('div');
-    d.className='docitem'+(isDone?' done':'');
-    d.innerHTML=`<span><b>안내문 ${i+1}</b></span>
-      <span><span class="st">${isDone?'✓ 완료':'미완료'}</span><span class="arrow">›</span></span>`;
-    d.onclick=()=>openEval(i);
-    list.appendChild(d);
+  let done=0, b1done=0, b1total=0, lastBlock=null;
+
+  S.docs.forEach((d,i)=>{
+    const isDone=!!S.answers[d.id];
+    if(isDone) done++;
+    if(d.block===1){ b1total++; if(isDone) b1done++; }
+
+    if(d.block!==lastBlock){
+      // 1블록이 끝나고 2블록이 시작되는 지점에 휴식 안내
+      if(lastBlock!==null){
+        const rest=document.createElement('div'); rest.className='rest';
+        rest.innerHTML='☕ <b>1블록이 끝났습니다.</b> 잠시 쉬었다가 2블록을 진행해 주세요. '
+          +'지금 종료하셔도 저장되며, 다시 로그인하면 여기서 이어집니다.';
+        list.appendChild(rest);
+      }
+      const h=document.createElement('div'); h.className='blockhead';
+      h.textContent=d.block+'블록 ('+(d.block===1?'1–10':'11–20')+'번째 안내문)';
+      list.appendChild(h);
+      lastBlock=d.block;
+    }
+
+    const el=document.createElement('div');
+    el.className='docitem'+(isDone?' done':'');
+    el.innerHTML='<span><b>안내문 '+(i+1)+'</b></span>'
+      +'<span><span class="st">'+(isDone?'✓ 완료':'미완료')+'</span><span class="arrow">›</span></span>';
+    el.onclick=()=>openEval(i);
+    list.appendChild(el);
   });
-  $('home-bar').style.width=done*10+'%';
-  $('home-cnt').textContent=done+' / 10 완료';
-  $('home-pct').textContent=done*10+'%';
-  $('home-done').classList.toggle('hidden',done<10);
-  $('home-guide').classList.toggle('hidden',done>=10);
+
+  const pct=Math.round(done/NTOTAL*100);
+  $('home-bar').style.width=pct+'%';
+  $('home-cnt').textContent=done+' / '+NTOTAL+' 완료';
+  $('home-pct').textContent=pct+'%';
+  $('home-done').classList.toggle('hidden',done<NTOTAL);
+  $('home-guide').classList.toggle('hidden',done>=NTOTAL);
+
+  // 1블록 완료 직후 안내
+  if(b1done===b1total && done<NTOTAL && done===b1total){
+    toast('1블록 완료 — 잠시 쉬었다 하셔도 됩니다');
+  }
 }
 $('btn-logout').onclick=()=>{ S={pid:null,pw:null,docs:[],answers:{}}; show('view-login'); };
 
 /* ---------- 평가 ---------- */
 let cur=null; // index in S.docs
 function openEval(i){
-  cur=i; const doc=S.docs[i];
+  cur=i; const d=S.docs[i];
   $('eval-title').textContent='안내문 '+(i+1);
-  $('eval-pos').textContent=(i+1)+' / 10';
-  $('eval-text').textContent=SURVEY.docs[doc];
+  $('eval-pos').textContent=d.block+'블록 · '+(i+1)+' / '+NTOTAL;
+  $('eval-text').textContent=SURVEY.docs[d.id];
   $('eval-err').textContent='';
-  const saved=S.answers[doc];
+  const saved=S.answers[d.id];
   const qs=$('eval-qs'); qs.innerHTML='';
   SURVEY.questions.forEach((q,qi)=>{
     const b=document.createElement('div'); b.className='qblock';
-    b.innerHTML=`<div class="qtext"><span class="qnum">Q${qi+1}.</span>${q.text}</div>`;
+    b.innerHTML='<div class="qtext"><span class="qnum">Q'+(qi+1)+'.</span>'+q.text+'</div>';
     const row=document.createElement('div'); row.className='likert';
     for(let v=1;v<=5;v++){
       const btn=document.createElement('button'); btn.type='button';
-      btn.innerHTML=`<span class="n">${v}</span><span class="t">${SURVEY.scale[v-1]}</span>`;
+      btn.innerHTML='<span class="n">'+v+'</span><span class="t">'+SURVEY.scale[v-1]+'</span>';
       if(saved && saved.q[qi]===v) btn.classList.add('sel');
-      btn.onclick=()=>{ [...row.children].forEach(c=>c.classList.remove('sel')); btn.classList.add('sel'); btn.dataset.v=v; row.dataset.val=v; };
+      btn.onclick=()=>{ [...row.children].forEach(c=>c.classList.remove('sel')); btn.classList.add('sel'); row.dataset.val=v; };
       row.appendChild(btn);
     }
     if(saved) row.dataset.val=saved.q[qi];
@@ -269,17 +307,17 @@ function openEval(i){
 $('btn-back').onclick=()=>{ renderHome(); show('view-home'); };
 
 $('btn-submit').onclick=async()=>{
-  const doc=S.docs[cur];
+  const d=S.docs[cur];
   const rows=[...document.querySelectorAll('#eval-qs .likert')];
   const q=rows.map(r=>Number(r.dataset.val||0));
   const missing=q.findIndex(v=>!v);
-  if(missing>=0){ $('eval-err').textContent=`Q${missing+1} 문항에 응답해 주세요.`;
+  if(missing>=0){ $('eval-err').textContent='Q'+(missing+1)+' 문항에 응답해 주세요.';
     rows[missing].scrollIntoView({behavior:'smooth',block:'center'}); return; }
   const comment=$('eval-comment').value.trim();
   busy($('btn-submit'),true,'저장 중…');
   try{
-    await api({action:'submit',pid:S.pid,pw:S.pw,doc,q,comment});
-    S.answers[doc]={q,comment};
+    await api({action:'submit',pid:S.pid,pw:S.pw,doc:d.id,block:d.block,order:d.order,q,comment});
+    S.answers[d.id]={q,comment};
     toast('저장되었습니다 ✓');
     renderHome(); show('view-home');
   }catch(e){ $('eval-err').textContent='저장 실패: '+e.message+' (다시 시도해 주세요)'; }
