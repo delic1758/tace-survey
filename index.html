@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TACE 안내문 평가</title>
-<script src="data.js?v=20260913profile"></script>
-<script src="config.js?v=20260913profile"></script>
+<script src="data.js?v=20260913live"></script>
+<script src="config.js?v=20260913live"></script>
 <style>
   :root{
     --bg:#f9f9f7; --surface:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -162,8 +162,8 @@ $('btn-login').onclick=async()=>{
  $('login-err').textContent='';busy($('btn-login'),true,'확인 중…');
  try{const id=$('login-pid').value,pw=$('login-pw').value;const r=await api({action:'login',login_id:id,pw});
   if(r.bundle.version!==SURVEY.version||JSON.stringify(r.bundle.questions)!==JSON.stringify(SURVEY.questions.map(q=>q.text))||r.bundle.documents.length!==SURVEY.per_participant)throw Error('웹 화면과 배정자료 버전이 다릅니다. 연구자에게 문의해 주세요.');
-  S={login_id:id,pw,bundle:r.bundle,answers:Object.fromEntries(r.responses.filter(valid).map(x=>[x.case_code,x])),collect:r.collection_enabled,enrolled:r.enrolled};pending=null;$('login-pw').value='';
-  setupInfo(r.profile_options);if(S.collect&&S.enrolled){renderHome();show('view-home');}else show('view-demo');
+  S={login_id:id,pw,bundle:r.bundle,answers:Object.fromEntries(r.responses.filter(valid).map(x=>[x.case_code,x])),collect:r.collection_enabled,collectionState:r.collection_state,enrolled:r.enrolled};pending=null;$('login-pw').value='';
+  setupInfo(r.profile_options);if(S.enrolled){renderHome();show('view-home');}else show('view-demo');
  }catch(e){$('login-err').textContent=e.message;}finally{busy($('btn-login'),false);}
 };
 function setupInfo(options){
@@ -183,7 +183,7 @@ $('btn-demo').onclick=async()=>{
  catch(e){$('demo-err').textContent=e.message;}finally{busy($('btn-demo'),false);}
 };
 function renderHome(){
- $('home-pid').textContent='참여자 '+S.login_id;$('mode-note').textContent=S.collect?'제출한 응답은 다시 로그인해도 이어서 확인할 수 있습니다.':'미리보기 · 입력값은 저장되지 않습니다.';
+ $('home-pid').textContent='참여자 '+S.login_id;$('mode-note').textContent=S.collect?'제출한 응답은 다시 로그인해도 이어서 확인할 수 있습니다.':(S.collectionState==='paused'?'응답 저장이 일시정지되어 있습니다. 재개 후 다시 로그인해 주세요.':'미리보기 · 입력값은 저장되지 않습니다.');
  const list=$('doclist');list.replaceChildren();let done=0;
  S.bundle.documents.forEach((d,i)=>{const isDone=valid(S.answers[d.case_code]);if(isDone)done++;const el=document.createElement('button');el.type='button';el.className='docitem'+(isDone?' done':'');const title=document.createElement('b');title.textContent='안내문 '+(i+1);const status=document.createElement('span');status.className='st';status.textContent=isDone?'✓ 완료':'미완료';el.append(title,status);el.onclick=()=>openEval(i);list.append(el);});
  const total=S.bundle.documents.length,pct=Math.round(done/total*100);$('home-bar').style.width=pct+'%';$('home-cnt').textContent=done+' / '+total+' 완료';$('home-pct').textContent=pct+'%';$('home-done').classList.toggle('hidden',done<total||!S.collect);

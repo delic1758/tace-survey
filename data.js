@@ -1,4 +1,4 @@
-const SURVEY={"schema":"tace-pages-v1.9-profile","version":"v1.9","participant_count":50,"per_participant":10,"document_count":100,"per_document":5,"questions":[{"text":"Q1. 이 설명은 필요한 내용을 충분히 포함하고 있었다.","rev":false},{"text":"Q2. 이 설명은 간결하고 이해하기 쉬웠다.","rev":false},{"text":"Q3. 이 설명은 나를 배려하고 있다는 느낌을 주었다.","rev":false},{"text":"Q4. 전반적으로 이 설명에 만족한다.","rev":false}],"scale":["전혀 그렇지 않다","그렇지 않다","보통이다","그렇다","매우 그렇다"]};
+const SURVEY={"schema":"tace-pages-v1.9-live","version":"v1.9","participant_count":50,"per_participant":10,"document_count":100,"per_document":5,"questions":[{"text":"Q1. 이 설명은 필요한 내용을 충분히 포함하고 있었다.","rev":false},{"text":"Q2. 이 설명은 간결하고 이해하기 쉬웠다.","rev":false},{"text":"Q3. 이 설명은 나를 배려하고 있다는 느낌을 주었다.","rev":false},{"text":"Q4. 전반적으로 이 설명에 만족한다.","rev":false}],"scale":["전혀 그렇지 않다","그렇지 않다","보통이다","그렇다","매우 그렇다"]};
 const SurveyMath={
  mean(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:null;},
  quantile(a,p){if(!a.length)return null;const s=[...a].sort((a,b)=>a-b),h=(s.length-1)*p,i=Math.floor(h);return s[i]+(s[Math.min(i+1,s.length-1)]-s[i])*(h-i);},

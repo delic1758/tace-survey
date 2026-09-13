@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 대시보드 — TACE 안내문 평가</title>
-<script src="data.js?v=20260913profile"></script>
-<script src="config.js?v=20260913profile"></script>
+<script src="data.js?v=20260913live"></script>
+<script src="config.js?v=20260913live"></script>
 <style>
   :root{
     --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -88,11 +88,11 @@
       <div><h1>평가 진행 대시보드</h1><span class="updated" id="updated"></span></div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn ghost" id="btn-csv">응답 CSV</button><button class="btn ghost" id="btn-participants">참여자 CSV</button><button class="btn ghost" id="btn-statistics">통계 CSV</button><button class="btn ghost" id="btn-logout">로그아웃</button>
-        <button class="btn" id="btn-refresh">새로고침</button>
+        <button class="btn" id="btn-refresh">새로고침</button><button class="btn" id="btn-start">응답 저장 시작</button><button class="btn ghost" id="btn-pause">일시정지</button>
       </div>
     </div>
 
-    <details class="sub"><summary>추가 분석용 파일</summary><button class="btn ghost" id="btn-analysis-participants">분석용 참여정보 CSV</button><p>응답 CSV와 이 파일을 기존 분석 코드에 함께 입력합니다.</p></details><p id="admin-mode" class="sub"></p><p id="admin-status" class="err"></p><p id="export-note" class="sub"></p><div class="row" id="tiles"></div>
+    <details class="sub"><summary>추가 분석용 파일</summary><button class="btn ghost" id="btn-analysis-participants">분석용 참여정보 CSV</button><p>응답 CSV와 이 파일을 기존 분석 코드에 함께 입력합니다.</p></details><p class="sub">자동 갱신: 30초 간격 · 화면을 보고 있을 때만 갱신합니다.</p><p id="admin-mode" class="sub"></p><p id="admin-status" class="err"></p><p id="export-note" class="sub"></p><div class="row" id="tiles"></div>
 
     <div class="card">
       <h2>참여자별 진행 현황 (50명)</h2>
@@ -136,17 +136,39 @@
 </div>
 
 <script>
-const $=id=>document.getElementById(id);let PW=null,DATA=null;
+const $=id=>document.getElementById(id);let PW=null,DATA=null,refreshTimer=null,inFlight=false,sessionEpoch=0;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=x=>x===null?'—':x.toFixed(2);
-async function api(payload){if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(CONFIG.SCRIPT_URL)&&!CONFIG.LOCAL_TEST)throw Error('웹 연결 설정이 아직 완료되지 않았습니다.');const res=await fetch(CONFIG.SCRIPT_URL,{method:'POST',body:JSON.stringify({schema:SURVEY.schema,...payload})});const r=await res.json();if(!r.ok)throw Error(r.error||'처리하지 못했습니다.');return r;}
+async function api(payload){
+ if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(CONFIG.SCRIPT_URL)&&!CONFIG.LOCAL_TEST)throw Error('웹 연결 설정이 아직 완료되지 않았습니다.');
+ const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),30000);
+ try{const res=await fetch(CONFIG.SCRIPT_URL,{method:'POST',body:JSON.stringify({schema:SURVEY.schema,...payload}),signal:abort.signal});const r=await res.json();if(!r.ok)throw Error(r.error||'처리하지 못했습니다.');return r;}
+ catch(e){if(e.name==='AbortError')throw Error('연결 시간이 초과되었습니다. 마지막 확인 자료가 표시됩니다.');throw e;}finally{clearTimeout(timer);}
+}
+function stopRefresh(){if(refreshTimer!==null)clearTimeout(refreshTimer);refreshTimer=null;}
+function scheduleRefresh(){stopRefresh();if(PW&&!document.hidden)refreshTimer=setTimeout(()=>refresh(),30000);}
+function controls(){const locked=inFlight||!PW,closed=!!(DATA&&DATA.closed);$('btn-refresh').disabled=locked;$('btn-start').disabled=locked||closed||!!(DATA&&DATA.collection_enabled);$('btn-pause').disabled=locked||closed||!(DATA&&DATA.collection_enabled);}
 $('btn-login').onclick=login;$('admin-pw').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
-async function login(){const pw=$('admin-pw').value;$('login-err').textContent='';$('btn-login').disabled=true;try{const r=await api({action:'admin',pw});if(r.version!==SURVEY.version)throw Error('서버 버전이 다릅니다.');DATA=r;PW=pw;$('admin-pw').value='';render();$('view-login').classList.add('hidden');$('view-dash').classList.remove('hidden');}catch(e){$('login-err').textContent=e.message;}finally{$('btn-login').disabled=false;}}
-$('btn-refresh').onclick=async()=>{$('btn-refresh').disabled=true;try{DATA=await api({action:'admin',pw:PW});render();$('admin-status').textContent='최신 자료를 불러왔습니다.';}catch(e){$('admin-status').textContent='새로고침 실패: '+e.message;}finally{$('btn-refresh').disabled=false;}};
-$('btn-logout').onclick=()=>{PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable'].forEach(x=>$(x).replaceChildren());};
+async function login(){const pw=$('admin-pw').value;$('login-err').textContent='';$('btn-login').disabled=true;const epoch=++sessionEpoch;
+ try{const r=await api({action:'admin',pw});if(epoch!==sessionEpoch)return;if(r.version!==SURVEY.version)throw Error('서버 버전이 다릅니다.');DATA=r;PW=pw;$('admin-pw').value='';render();$('view-login').classList.add('hidden');$('view-dash').classList.remove('hidden');controls();scheduleRefresh();}
+ catch(e){$('login-err').textContent=e.message;}finally{$('btn-login').disabled=false;}
+}
+async function refresh(){if(!PW||inFlight)return;stopRefresh();inFlight=true;controls();const epoch=sessionEpoch,pw=PW;
+ try{const r=await api({action:'admin',pw});if(epoch!==sessionEpoch)return;DATA=r;render();$('admin-status').textContent='';}
+ catch(e){if(epoch===sessionEpoch)$('admin-status').textContent='갱신 실패 — 마지막 확인 자료입니다: '+e.message;}
+ finally{if(epoch===sessionEpoch){inFlight=false;controls();scheduleRefresh();}}
+}
+async function control(operation){if(!PW||inFlight)return;stopRefresh();inFlight=true;controls();const epoch=sessionEpoch,pw=PW;
+ try{await api({action:'collection_control',pw,operation});const r=await api({action:'admin',pw});if(epoch!==sessionEpoch)return;DATA=r;render();$('admin-status').textContent=operation==='start'?'응답 저장이 시작되었습니다. 참여자는 다시 로그인하면 평가할 수 있습니다.':'일시정지되었습니다. 기존 응답은 유지됩니다.';}
+ catch(e){if(epoch===sessionEpoch)$('admin-status').textContent='상태 확인이 필요합니다. 새로고침해 주세요: '+e.message;}
+ finally{if(epoch===sessionEpoch){inFlight=false;controls();scheduleRefresh();}}
+}
+$('btn-refresh').onclick=refresh;$('btn-start').onclick=()=>control('start');$('btn-pause').onclick=()=>control('pause');
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopRefresh();else if(PW)refresh();});
+$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable','admin-mode','admin-status','updated'].forEach(x=>$(x).replaceChildren());controls();};
 function render(){const d=SurveyMath.summary(DATA),map=Object.fromEntries(DATA.assignments.map(a=>[a.participant_id,a.login_id]));
  $('updated').textContent='v1.9 · 설명문100건 / 50명 × 10건 / 4문항 · '+new Date().toLocaleString('ko-KR');
- $('admin-mode').textContent=DATA.closed?'수집 마감 상태':DATA.collection_enabled?'일반인 응답 수집 활성':'연구자 검토 모드 · 일반인 응답 수집 비활성';
+ $('admin-mode').textContent=DATA.closed?'수집 마감':DATA.collection_enabled?'응답 저장 중':(DATA.collection&&DATA.collection.state==='paused'?'응답 저장 일시정지':'응답 저장 대기 — 시작 버튼을 누르세요');
  $('tiles').innerHTML=[['수집된 유효 평가',d.total+' / 500'],['참여정보 등록',d.enrolled+' / 50'],['10건 완료',d.finished+' / 50'],['확인이 필요한 기록',DATA.issues.length]].map(([l,v])=>'<div class="tile"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>').join('');
  const participantMap=Object.fromEntries(DATA.participants.map(p=>[p.participant_id,p]));
  $('ptable').innerHTML='<tr><th>ID</th><th>나이</th><th>성별</th><th>등록 시각</th><th>진행</th><th>최근 응답</th></tr>'+DATA.assignments.map(a=>{const r=d.byParticipant[a.participant_id]||[],p=participantMap[a.participant_id]||{},last=r.map(x=>x.last_saved_at).sort().pop();return '<tr><td>'+esc(a.login_id)+'</td><td>'+esc(p.age??'—')+'</td><td>'+esc(p.gender||'—')+'</td><td>'+esc(p.registered_at?new Date(p.registered_at).toLocaleString('ko-KR'):'—')+'</td><td>'+r.length+'/10<div class="mini"><div style="width:'+r.length*10+'%"></div></div></td><td>'+esc(last?new Date(last).toLocaleString('ko-KR'):'—')+'</td></tr>';}).join('');
