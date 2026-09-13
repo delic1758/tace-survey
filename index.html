@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TACE 안내문 평가</title>
-<script src="data.js?v=20260913simple"></script>
-<script src="config.js?v=20260913connected"></script>
+<script src="data.js?v=20260913profile"></script>
+<script src="config.js?v=20260913profile"></script>
 <style>
   :root{
     --bg:#f9f9f7; --surface:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -92,12 +92,9 @@
     </div>
   </div>
 
-  <div id="view-demo" class="hidden"><div class="card"><h2>연구 안내 및 참여 확인</h2>
-  <p id="review-note" class="rest">연구자 검토용입니다. 실제 응답은 저장되지 않습니다.</p>
-  <p id="study-info" style="white-space:pre-wrap"></p><p id="study-contact" class="note" style="white-space:pre-wrap"></p>
-  <div class="checks"><label><input id="adult" type="checkbox"> 만18세 이상입니다.</label><label><input id="korean" type="checkbox"> 한국어 설명문을 읽을 수 있습니다.</label><label><input id="nonclinician" type="checkbox"> 보건의료 전문가가 아닌 일반인입니다.</label></div>
-  <div id="profile-fields"></div><div class="checks"><label><input id="consent" type="checkbox"> 연구 안내 및 참여·철회 방법을 읽었으며 자발적으로 참여하는 데 동의합니다.</label></div>
-  <button class="btn" id="btn-demo">동의하고 시작하기</button><button class="btn ghost hidden" id="btn-preview">연구자 검토용 화면 보기</button><button class="btn ghost" id="btn-info-logout">로그아웃</button><div class="err" id="demo-err"></div></div></div>
+  <div id="view-demo" class="hidden"><div class="card"><h2>참여자 정보</h2>
+  <div id="profile-fields"></div>
+  <button class="btn" id="btn-demo">평가 시작</button><button class="btn ghost" id="btn-info-logout">로그아웃</button><div class="err" id="demo-err"></div></div></div>
   <!-- ===== 홈(배정 목록) ===== -->
   <div id="view-home" class="hidden">
     <div class="topbar">
@@ -170,26 +167,23 @@ $('btn-login').onclick=async()=>{
  }catch(e){$('login-err').textContent=e.message;}finally{busy($('btn-login'),false);}
 };
 function setupInfo(options){
- const study=S.bundle.study;
- $('study-info').textContent=study.approved_information_text||'연구 안내·동의문을 준비 중입니다. 현재는 연구자 검토만 가능합니다.';
- $('study-contact').textContent=[study.contact&&'문의: '+study.contact,study.retention_and_withdrawal].filter(Boolean).join('\n');
- $('review-note').classList.toggle('hidden',S.collect);$('btn-preview').classList.toggle('hidden',S.collect);$('btn-demo').disabled=!S.collect;
  $('profile-fields').replaceChildren();
  const al=document.createElement('label');al.htmlFor='profile-age';al.textContent='나이(만 나이·선택)';
  const age=document.createElement('input');age.id='profile-age';age.type='number';age.min='18';age.max='120';age.step='1';age.inputMode='numeric';age.placeholder='예: 35';$('profile-fields').append(al,age);
  const gl=document.createElement('label');gl.htmlFor='profile-gender';gl.textContent='성별(선택)';const gender=document.createElement('select');gender.id='profile-gender';
  for(const v of options.gender){const o=document.createElement('option');o.value=o.textContent=v;gender.append(o);}$('profile-fields').append(gl,gender);
- for(const id of ['adult','korean','nonclinician','consent'])$(id).checked=false;
 }
 $('btn-demo').onclick=async()=>{
- $('demo-err').textContent='';if(!S.collect)return;
- if(['adult','korean','nonclinician','consent'].some(id=>!$(id).checked)){$('demo-err').textContent='참여 기준과 동의 여부를 모두 확인해 주세요.';return;}
- const enrollment={adult:true,reads_korean:true,non_clinician:true,consent:true,information_version:S.bundle.study.information_version,profile:{age:$('profile-age').value===''?'':Number($('profile-age').value),gender:$('profile-gender').value}};
- busy($('btn-demo'),true,'저장 중…');try{await api({action:'enroll',...credentials(),enrollment});S.enrolled=true;renderHome();show('view-home');}catch(e){$('demo-err').textContent=e.message;}finally{busy($('btn-demo'),false);}
+ $('demo-err').textContent='';
+ const raw=$('profile-age').value,age=raw===''?'':Number(raw),gender=$('profile-gender').value;
+ if(age!==''&&(!Number.isInteger(age)||age<18||age>120)){$('demo-err').textContent='나이는 만 18~120세 정수로 입력하거나 비워 주세요.';return;}
+ const enrollment={profile:{age,gender}};
+ busy($('btn-demo'),true,'시작 중…');
+ try{if(S.collect){await api({action:'enroll',...credentials(),enrollment});S.enrolled=true;}renderHome();show('view-home');}
+ catch(e){$('demo-err').textContent=e.message;}finally{busy($('btn-demo'),false);}
 };
-$('btn-preview').onclick=()=>{renderHome();show('view-home');};
 function renderHome(){
- $('home-pid').textContent='참여자 '+S.login_id;$('mode-note').textContent=S.collect?'제출한 응답은 다시 로그인해도 이어서 확인할 수 있습니다.':'연구자 검토 모드 · 응답 저장과 제출은 비활성입니다.';
+ $('home-pid').textContent='참여자 '+S.login_id;$('mode-note').textContent=S.collect?'제출한 응답은 다시 로그인해도 이어서 확인할 수 있습니다.':'미리보기 · 입력값은 저장되지 않습니다.';
  const list=$('doclist');list.replaceChildren();let done=0;
  S.bundle.documents.forEach((d,i)=>{const isDone=valid(S.answers[d.case_code]);if(isDone)done++;const el=document.createElement('button');el.type='button';el.className='docitem'+(isDone?' done':'');const title=document.createElement('b');title.textContent='안내문 '+(i+1);const status=document.createElement('span');status.className='st';status.textContent=isDone?'✓ 완료':'미완료';el.append(title,status);el.onclick=()=>openEval(i);list.append(el);});
  const total=S.bundle.documents.length,pct=Math.round(done/total*100);$('home-bar').style.width=pct+'%';$('home-cnt').textContent=done+' / '+total+' 완료';$('home-pct').textContent=pct+'%';$('home-done').classList.toggle('hidden',done<total||!S.collect);
@@ -199,7 +193,7 @@ $('btn-logout').onclick=()=>{if(!unsaved()||confirm('저장하지 않은 응답�
 $('btn-info-logout').onclick=logout;
 function openEval(i){cur=i;pending=null;const d=S.bundle.documents[i],saved=S.answers[d.case_code];$('eval-title').textContent='안내문 '+(i+1);$('eval-pos').textContent=(i+1)+' / '+S.bundle.documents.length;$('eval-text').textContent=d.LLM_결과;$('eval-err').textContent='';$('eval-qs').replaceChildren();
  SURVEY.questions.forEach((q,qi)=>{const block=document.createElement('fieldset');block.className='qblock';const text=document.createElement('legend');text.className='qtext';text.textContent=q.text;const row=document.createElement('div');row.className='likert';row.dataset.val=saved?saved.q[qi]:'';row.setAttribute('role','radiogroup');row.setAttribute('aria-label','Q'+(qi+1));for(let v=1;v<=5;v++){const btn=document.createElement('button');btn.type='button';btn.setAttribute('role','radio');btn.setAttribute('aria-label',v+'점');btn.setAttribute('aria-checked',String(!!saved&&saved.q[qi]===v));btn.innerHTML='<span class="n">'+v+'</span><span class="t">'+SURVEY.scale[v-1]+'</span>';btn.classList.toggle('sel',!!saved&&saved.q[qi]===v);btn.onclick=()=>{[...row.children].forEach(c=>{c.classList.remove('sel');c.setAttribute('aria-checked','false');});btn.classList.add('sel');btn.setAttribute('aria-checked','true');row.dataset.val=v;pending=null;};row.append(btn);}block.append(text,row);$('eval-qs').append(block);});
- $('eval-comment').value=saved?saved.comment:'';$('btn-submit').textContent=S.collect?(saved?'수정 제출하기':'제출하기'):'검토 모드 · 제출 비활성';$('btn-submit').dataset.label=$('btn-submit').textContent;$('btn-submit').disabled=!S.collect;show('view-eval');
+ $('eval-comment').value=saved?saved.comment:'';$('btn-submit').textContent=S.collect?(saved?'수정 제출하기':'제출하기'):'미리보기 · 제출 비활성';$('btn-submit').dataset.label=$('btn-submit').textContent;$('btn-submit').disabled=!S.collect;show('view-eval');
 }
 function currentResponse(){const d=S.bundle.documents[cur];return{case_code:d.case_code,doc_hash:d.hash,order:cur+1,q:[...$('eval-qs').querySelectorAll('.likert')].map(x=>Number(x.dataset.val||0)),comment:$('eval-comment').value};}
 function unsaved(){if(!S.collect||cur===null||$('view-eval').classList.contains('hidden'))return false;const r=currentResponse(),old=S.answers[r.case_code];return old?JSON.stringify([r.q,r.comment])!==JSON.stringify([old.q,old.comment]):r.q.some(Boolean)||!!r.comment;}
