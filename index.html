@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TACE 안내문 평가</title>
-<script src="data.js?v=20260913live"></script>
-<script src="config.js?v=20260913live"></script>
+<script src="data.js?v=20260914public5"></script>
+<script src="config.js?v=20260914public5"></script>
 <style>
   :root{
     --bg:#f9f9f7; --surface:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -104,10 +104,10 @@
     <div class="card">
       <h2>나의 진행 상황</h2>
       <div class="pbar"><div id="home-bar" style="width:0%"></div></div>
-      <div class="pmeta"><span id="home-cnt">0 / 10 완료</span><span id="home-pct">0%</span></div>
+      <div class="pmeta"><span id="home-cnt">0 / 5 완료</span><span id="home-pct">0%</span></div>
     </div>
     <div class="card" id="home-guide">
-      <h2>평가 안내</h2><p>환자 설명문만 읽고 일반인의 관점에서 평가합니다. 실제 진료 안내가 아닌 연구용 문서입니다.</p><p>Q1은 필요한 정보가 충분하다고 느끼는지를 묻습니다. 실제 임상정보의 누락이나 사실성을 확인하는 문항은 아닙니다.</p><p>다른 평가자와 상의하지 않고 독립적으로 응답해 주세요.</p><p>설명문 10개마다 4개 문항에 응답합니다. 1점은 전혀 그렇지 않다, 5점은 매우 그렇다입니다.</p><p>제출한 응답은 저장되며 다시 로그인하면 이어서 진행할 수 있습니다.</p></div>
+      <h2>평가 안내</h2><p>환자 설명문만 읽고 일반인의 관점에서 평가합니다. 실제 진료 안내가 아닌 연구용 문서입니다.</p><p>Q1은 필요한 정보가 충분하다고 느끼는지를 묻습니다. 실제 임상정보의 누락이나 사실성을 확인하는 문항은 아닙니다.</p><p>다른 평가자와 상의하지 않고 독립적으로 응답해 주세요.</p><p>총 5개 설명문을 읽고, 각 설명문마다 Q1~Q4에 응답합니다. 1점은 전혀 그렇지 않다, 5점은 매우 그렇다입니다.</p><p>제출한 응답은 저장되며 다시 로그인하면 이어서 진행할 수 있습니다.</p></div>
     <p id="mode-note" class="rest"></p><div class="doclist" id="doclist"></div>
     <div class="card hidden" id="home-done" style="text-align:center; border-color:#bfe3bf; background:#f4fbf4;">
       <div class="bigcheck">🎉</div>
@@ -200,10 +200,11 @@ function unsaved(){if(!S.collect||cur===null||$('view-eval').classList.contains(
 $('btn-back').onclick=()=>{if(unsaved()&&!confirm('저장하지 않은 응답이 있습니다. 목록으로 돌아갈까요?'))return;cur=null;pending=null;renderHome();show('view-home');};
 $('eval-comment').addEventListener('input',()=>pending=null);
 window.addEventListener('beforeunload',e=>{if(unsaved()){e.preventDefault();e.returnValue='';}});
+function requestId(){if(globalThis.crypto&&typeof crypto.randomUUID==='function')return crypto.randomUUID();if(!globalThis.crypto||typeof crypto.getRandomValues!=='function')throw Error('이 브라우저에서는 저장 요청을 만들 수 없습니다. 브라우저를 업데이트해 주세요.');const a=new Uint8Array(16);crypto.getRandomValues(a);a[6]=(a[6]&15)|64;a[8]=(a[8]&63)|128;const h=Array.from(a,x=>x.toString(16).padStart(2,'0')).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);}
 $('btn-submit').onclick=async()=>{
  if(!S.collect||!S.enrolled)return;const response=currentResponse();if(!valid(response)){$('eval-err').textContent='4개 문항에 모두 응답해 주세요.';return;}if(response.comment.length>2000){$('eval-err').textContent='의견은 2000자 이하로 입력해 주세요.';return;}
- const text=JSON.stringify(response);if(!pending||pending.text!==text)pending={text,request_id:crypto.randomUUID()};busy($('btn-submit'),true,'저장 중…');$('eval-err').textContent='';
- try{const result=await api({action:'submit',...credentials(),version:S.bundle.version,bundle_hash:S.bundle.bundle_hash,response,request_id:pending.request_id});if(result.replayed){const fresh=await api({action:'login',...credentials()});S.answers=Object.fromEntries(fresh.responses.filter(valid).map(x=>[x.case_code,x]));}else S.answers[response.case_code]=response;pending=null;cur=null;renderHome();show('view-home');toast('저장되었습니다.');}catch(e){$('eval-err').textContent='저장 확인 실패: '+e.message+' 같은 화면에서 다시 제출해 주세요.';}finally{busy($('btn-submit'),false);}
+ busy($('btn-submit'),true,'저장 중…');$('eval-err').textContent='';
+ try{const text=JSON.stringify(response);if(!pending||pending.text!==text)pending={text,request_id:requestId()};const result=await api({action:'submit',...credentials(),version:S.bundle.version,bundle_hash:S.bundle.bundle_hash,response,request_id:pending.request_id});if(result.replayed){const fresh=await api({action:'login',...credentials()});S.answers=Object.fromEntries(fresh.responses.filter(valid).map(x=>[x.case_code,x]));}else S.answers[response.case_code]=response;pending=null;cur=null;renderHome();show('view-home');toast('저장되었습니다.');}catch(e){$('eval-err').textContent='저장 확인 실패: '+e.message+' 같은 화면에서 다시 제출해 주세요.';}finally{busy($('btn-submit'),false);}
 };
 
 </script></body></html>

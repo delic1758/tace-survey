@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 대시보드 — TACE 안내문 평가</title>
-<script src="data.js?v=20260913live"></script>
-<script src="config.js?v=20260913live"></script>
+<script src="data.js?v=20260914public5"></script>
+<script src="config.js?v=20260914public5"></script>
 <style>
   :root{
     --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -96,29 +96,25 @@
 
     <div class="card">
       <h2>참여자별 진행 현황 (50명)</h2>
-      <p class="sub">각 참여자는 배정된 설명문10건을 평가합니다. 화면의 P ID는 분석파일의 PUB ID와1:1로 연결됩니다.</p>
+      <p class="sub">각 참여자는 배정된 설명문5건을 평가합니다. 화면의 P ID는 분석파일의 PUB ID와1:1로 연결됩니다.</p>
       <div class="scroll"><table id="ptable"></table></div>
     </div>
 
     <div class="card">
       <h2>문서별 평가 현황 (100건)</h2>
-      <p class="sub">각 칸은 문서 1건 · 숫자는 사례번호 뒷자리 · 색이 진할수록 평가 완료 인원이 많음 (목표: 문서당5명)</p>
+      <p class="sub">각 칸은 문서 1건 · 숫자는 사례번호 뒷자리 · 칸 안은 완료 인원/배정 인원입니다. 진한 칸은 배정 완료입니다 (2명 배정 50건, 3명 배정 50건).</p>
       <div class="hm" id="heatmap"></div>
-      <div class="legend">
-        <span><span class="sw"></span>0명</span>
-        <span><span class="sw" style="background:var(--seq200); border-color:transparent"></span>1명</span>
-        <span><span class="sw" style="background:var(--seq350); border-color:transparent"></span>2명</span>
-        <span><span class="sw" style="background:var(--seq500); border-color:transparent"></span>3명</span><span>4명</span><span>5명 완료</span>
-      </div>
+      <div class="legend"><span>0명</span><span>일부 완료</span><span>배정 완료 (2/2 또는 3/3)</span></div>
     </div>
 
     <div class="card">
-      <h2>문항별 평균 (5점 척도)</h2>
+      <h2>문항별 평균 (유효 응답 전체)</h2>
       <p class="sub">4문항 모두 긍정 방향이며 역채점하지 않습니다. 괄호 안은 표준편차와 실제 응답 수입니다.</p>
       <div class="bchart" id="qchart"></div>
     </div>
 
     <div class="card"><h2>문항별 상세 통계</h2><p class="sub">최신 유효 응답의 기술통계입니다. 미응답은 제외하고 표준편차는 n−1로 계산합니다.</p><div class="scroll"><table id="stats-table"></table></div></div>
+    <div class="card"><h2>문서별 동일 가중 요약</h2><p class="sub">문서별 평균을 먼저 계산한 뒤 각 문서에 같은 가중치를 적용합니다. SD는 문서 평균 간 산포이며 신뢰구간이 아닙니다. 미응답 문서 제외 수를 확인하세요.</p><div class="scroll"><table id="document-weighted"></table></div></div>
     <div class="card"><h2>참여자 특성</h2><p id="age-summary" class="sub"></p><div class="scroll"><table id="gender-table"></table></div></div>
     <div class="card">
       <h2>응답 품질 점검 (QC)</h2>
@@ -165,16 +161,17 @@ async function control(operation){if(!PW||inFlight)return;stopRefresh();inFlight
 }
 $('btn-refresh').onclick=refresh;$('btn-start').onclick=()=>control('start');$('btn-pause').onclick=()=>control('pause');
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopRefresh();else if(PW)refresh();});
-$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable','admin-mode','admin-status','updated'].forEach(x=>$(x).replaceChildren());controls();};
+$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable','document-weighted','admin-mode','admin-status','updated'].forEach(x=>$(x).replaceChildren());controls();};
 function render(){const d=SurveyMath.summary(DATA),map=Object.fromEntries(DATA.assignments.map(a=>[a.participant_id,a.login_id]));
- $('updated').textContent='v1.9 · 설명문100건 / 50명 × 10건 / 4문항 · '+new Date().toLocaleString('ko-KR');
+ $('updated').textContent='v1.9 · 설명문100건 / 50명 × 5건 / 4문항 · '+new Date().toLocaleString('ko-KR');
  $('admin-mode').textContent=DATA.closed?'수집 마감':DATA.collection_enabled?'응답 저장 중':(DATA.collection&&DATA.collection.state==='paused'?'응답 저장 일시정지':'응답 저장 대기 — 시작 버튼을 누르세요');
- $('tiles').innerHTML=[['수집된 유효 평가',d.total+' / 500'],['참여정보 등록',d.enrolled+' / 50'],['10건 완료',d.finished+' / 50'],['확인이 필요한 기록',DATA.issues.length]].map(([l,v])=>'<div class="tile"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>').join('');
+ $('tiles').innerHTML=[['수집된 유효 평가',d.total+' / 250'],['참여정보 등록',d.enrolled+' / 50'],['5건 완료',d.finished+' / 50'],['확인이 필요한 기록',DATA.issues.length]].map(([l,v])=>'<div class="tile"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>').join('');
  const participantMap=Object.fromEntries(DATA.participants.map(p=>[p.participant_id,p]));
- $('ptable').innerHTML='<tr><th>ID</th><th>나이</th><th>성별</th><th>등록 시각</th><th>진행</th><th>최근 응답</th></tr>'+DATA.assignments.map(a=>{const r=d.byParticipant[a.participant_id]||[],p=participantMap[a.participant_id]||{},last=r.map(x=>x.last_saved_at).sort().pop();return '<tr><td>'+esc(a.login_id)+'</td><td>'+esc(p.age??'—')+'</td><td>'+esc(p.gender||'—')+'</td><td>'+esc(p.registered_at?new Date(p.registered_at).toLocaleString('ko-KR'):'—')+'</td><td>'+r.length+'/10<div class="mini"><div style="width:'+r.length*10+'%"></div></div></td><td>'+esc(last?new Date(last).toLocaleString('ko-KR'):'—')+'</td></tr>';}).join('');
- $('heatmap').innerHTML=d.documents.map(id=>{const n=d.byDocument[id]||0;return '<div class="c'+Math.min(n,5)+'" title="'+esc(id)+' — '+n+'/5명">'+esc(id.slice(-3))+'</div>';}).join('');
+ $('ptable').innerHTML='<tr><th>ID</th><th>나이</th><th>성별</th><th>등록 시각</th><th>진행</th><th>최근 응답</th></tr>'+DATA.assignments.map(a=>{const r=d.byParticipant[a.participant_id]||[],p=participantMap[a.participant_id]||{},last=r.map(x=>x.last_saved_at).sort().pop();return '<tr><td>'+esc(a.login_id)+'</td><td>'+esc(p.age??'—')+'</td><td>'+esc(p.gender||'—')+'</td><td>'+esc(p.registered_at?new Date(p.registered_at).toLocaleString('ko-KR'):'—')+'</td><td>'+r.length+'/5<div class="mini"><div style="width:'+r.length*20+'%"></div></div></td><td>'+esc(last?new Date(last).toLocaleString('ko-KR'):'—')+'</td></tr>';}).join('');
+ $('heatmap').innerHTML=d.documents.map(id=>{const n=d.byDocument[id]||0,target=d.targets[id];return '<div class="c'+(n===target?3:n?1:0)+'" title="'+esc(id)+' — '+n+'/'+target+'명">'+esc(id.slice(-3))+'<br>'+n+'/'+target+'</div>';}).join('');
  $('qchart').innerHTML=SURVEY.questions.map((q,i)=>{const stat=d.questions[i];return '<div class="brow"><div class="bl">Q'+(i+1)+' '+esc(q.text)+'</div><div class="btrack"><div class="bfill" style="width:'+(stat.mean===null?0:stat.mean/5*100)+'%"></div></div><div class="bval">'+fmt(stat.mean)+'<small> (SD '+fmt(stat.sd)+', n='+stat.n+')</small></div></div>';}).join('');
  $('stats-table').innerHTML='<tr><th>문항</th><th>n</th><th>평균</th><th>SD</th><th>중앙값 [25%,75%]</th><th>4~5점 n (%)</th></tr>'+d.questions.map((s,i)=>'<tr><td>Q'+(i+1)+'</td><td>'+s.n+'</td><td>'+fmt(s.mean)+'</td><td>'+fmt(s.sd)+'</td><td>'+fmt(s.median)+' ['+fmt(s.p25)+', '+fmt(s.p75)+']</td><td>'+s.positive+' ('+fmt(s.n?s.positive/s.n*100:null)+'%)</td></tr>').join('');
+ $('document-weighted').innerHTML='<tr><th>문항</th><th>응답 문서</th><th>동일 가중 평균</th><th>문서평균 간 SD</th><th>문서별 4~5점 비율 평균</th></tr>'+d.equalDocument.map((x,i)=>'<tr><td>Q'+(i+1)+'</td><td>'+x.n+'/100</td><td>'+fmt(x.mean)+'</td><td>'+fmt(x.sd)+'</td><td>'+fmt(x.positive===null?null:x.positive*100)+'%</td></tr>').join('');
  $('age-summary').textContent='나이: 응답 '+d.age.n+'명 / 미응답 '+d.ageMissing+'명 · 평균 '+fmt(d.age.mean)+'세 · SD '+fmt(d.age.sd)+' · 중앙값 '+fmt(d.age.median)+'세';
  $('gender-table').innerHTML='<tr><th>성별</th><th>명</th><th>비율(전체 등록자 기준)</th></tr>'+d.genders.map(x=>'<tr><td>'+esc(x.gender)+'</td><td>'+x.n+'</td><td>'+fmt(d.enrolled?x.n/d.enrolled*100:null)+'%</td></tr>').join('');
  $('qctable').innerHTML='<tr><th>항목</th><th>건수</th><th>설명</th></tr><tr><td>4문항 동일 점수</td><td>'+d.sameScore+'</td><td>모두 긍정 문항이므로 동일 점수만으로 모순·부적격·제외로 판단하지 않습니다.</td></tr>'+DATA.issues.map(x=>'<tr><td>'+esc(x.reason)+'</td><td>1</td><td>'+esc((map[x.participant_id]||x.participant_id)+' / '+x.case_code)+'</td></tr>').join('');
