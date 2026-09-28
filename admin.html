@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 대시보드 — TACE 안내문 평가</title>
-<script src="data.js?v=20260928r5"></script>
-<script src="config.js?v=20260928r5"></script>
+<script src="data.js?v=20260928r6"></script>
+<script src="config.js?v=20260928r6"></script>
 <style>
   :root{
     --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -69,6 +69,9 @@
   .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;}
   .comment-doc{color:var(--s1); font-weight:700; white-space:nowrap;}
   .updated{font-size:12.5px; color:var(--muted);}
+  .registration-status{display:flex; flex-wrap:wrap; gap:8px 20px; margin:0 0 16px; font-size:14px;}
+  .registration-status span{overflow-wrap:anywhere;}
+  #storage-link{color:var(--s1); font-size:13px;}
   .scroll{overflow-x:auto;}
   .flag{color:var(--warn); font-weight:700;}
   @media (max-width:640px){ .brow{grid-template-columns:150px 1fr 46px;} .hm{grid-template-columns:repeat(10,1fr);} }
@@ -91,11 +94,12 @@
 
   <!-- 대시보드 -->
   <div id="view-dash" class="hidden">
+    <p id="registration-status" class="registration-status" aria-live="polite"><span id="information-readiness"></span><span id="registration-availability"></span></p>
     <div class="topbar">
-      <div><h1>평가 진행 대시보드</h1><span class="updated" id="updated"></span></div>
+      <div><h1>평가 진행 대시보드</h1><span class="updated" id="updated"></span><br><a id="storage-link" class="hidden" target="_blank" rel="noopener noreferrer">응답 시트 열기</a></div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn ghost" id="btn-csv">응답 CSV</button><button class="btn ghost" id="btn-participants">참여자 CSV</button><button class="btn ghost" id="btn-statistics">통계 CSV</button><button class="btn ghost" id="btn-logout">로그아웃</button>
-        <button class="btn" id="btn-refresh">새로고침</button><button class="btn" id="btn-start">응답 저장 시작</button><button class="btn ghost" id="btn-pause">일시정지</button>
+        <button class="btn" id="btn-refresh">새로고침</button><button class="btn" id="btn-start">응답 저장 시작</button><button class="btn ghost" id="btn-pause">일시정지/마감</button>
       </div>
     </div>
 
@@ -170,7 +174,7 @@ async function control(operation){if(!PW||inFlight)return;stopRefresh();inFlight
 }
 $('btn-refresh').onclick=refresh;$('btn-start').onclick=()=>control('start');$('btn-pause').onclick=()=>control('pause');
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopRefresh();else if(PW)refresh();});
-$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable','document-weighted','admin-mode','admin-status','updated','participant-filter-note','export-note'].forEach(x=>$(x).replaceChildren());$('participant-filter').value='all';controls();};
+$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable','document-weighted','admin-mode','admin-status','updated','participant-filter-note','export-note','information-readiness','registration-availability'].forEach(x=>$(x).replaceChildren());$('participant-filter').value='all';$('storage-link').classList.add('hidden');$('storage-link').removeAttribute('href');controls();};
 function documentProgressState(n,target){
  if(!Number.isInteger(n)||!Number.isInteger(target)||n<0||target<0||n>target)return{key:'review',label:'배정·응답 수 확인 필요'};
  if(target===0)return{key:'unassigned',label:'미배정'};
@@ -178,7 +182,13 @@ function documentProgressState(n,target){
  if(n<target)return{key:'partial',label:'일부 완료'};
  return{key:'complete',label:'현재 배정 응답 완료'};
 }
-function render(){const d=SurveyMath.summary(DATA),map=Object.fromEntries(DATA.assignments.map(a=>[a.participant_id,a.participant_id]));
+function renderRegistrationStatus(){
+ const status=DATA.registration_info,info=status&&status.information;
+ if(!info){$('information-readiness').textContent='설명문 준비 상태: 서버 코드를 함께 갱신해 주세요.';$('registration-availability').textContent='신규 가입: 차단';}
+ else{const pending=Array.isArray(info.pending)?info.pending:[];$('information-readiness').textContent='설명문 준비 상태: '+(info.ready===true?'확정 완료':'미확정 항목 '+pending.length+'개(가입 차단 중) — '+pending.join(' · '));$('registration-availability').textContent='신규 가입: '+(status.registration_open===true?'가능':'차단'+(status.registration_reason?'(사유: '+status.registration_reason+')':''));}
+ const url=String(DATA.storage_url||''),valid=/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[^/?#]+(?:[/?#]|$)/.test(url);$('storage-link').classList.toggle('hidden',!valid);if(valid)$('storage-link').href=url;else $('storage-link').removeAttribute('href');
+}
+function render(){renderRegistrationStatus();const d=SurveyMath.summary(DATA),map=Object.fromEntries(DATA.assignments.map(a=>[a.participant_id,a.participant_id]));
  $('updated').textContent='v1.9 · 설명문100건 / 1인 5건 / 4문항 · 완료목표 50명 · 등록상한 '+(DATA.max_participants||100)+'명 · '+new Date().toLocaleString('ko-KR');
  $('admin-mode').textContent=DATA.closed?'수집 마감':DATA.collection_enabled?'응답 저장 중':(DATA.collection&&DATA.collection.state==='paused'?'응답 저장 일시정지':'응답 저장 대기 — 시작 버튼을 누르세요');
  $('tiles').innerHTML=[['수집된 유효 평가',d.total+' / '+d.expectedTotal],['계정·기존 등록',String(DATA.registered_count??d.enrolled)+' / '+(DATA.max_participants||100)],['5건 제출',d.finished+'명 (목표 50명)'],['최종 제출 완료',String(DATA.finalized_count??DATA.participants.filter(p=>p.finalized===true).length)+'명'],['확인이 필요한 기록',DATA.issues.length+(DATA.consent_warnings?.length||0)]].map(([l,v])=>'<div class="tile"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>').join('');
