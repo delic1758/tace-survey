@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 대시보드 — TACE 안내문 평가</title>
-<script src="data.js?v=20260929r11"></script>
-<script src="config.js?v=20260929r11"></script>
+<script src="data.js?v=20260930r12"></script>
+<script src="config.js?v=20260930r12"></script>
 <style>
   :root{
     --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
@@ -128,7 +128,6 @@
 
     <div class="card"><h2>문항별 상세 통계</h2><p class="sub">최신 유효 응답의 기술통계입니다. 미응답은 제외하고 표준편차는 n−1로 계산합니다.</p><div class="scroll"><table id="stats-table"></table></div></div>
     <div class="card"><h2>문서별 동일 가중 요약</h2><p class="sub">문서별 평균을 먼저 계산한 뒤 각 문서에 같은 가중치를 적용합니다. SD는 문서 평균 간 산포이며 신뢰구간이 아닙니다. 미응답 문서 제외 수를 확인하세요.</p><div class="scroll"><table id="document-weighted"></table></div></div>
-    <div class="card"><h2>참여자 특성</h2><p id="age-summary" class="sub"></p><div class="scroll"><table id="gender-table"></table></div></div>
     <div class="card">
       <h2>응답 품질 점검 (QC)</h2>
       <p class="sub">아래 항목은 <b>자동 제외가 아니라 확인용</b>입니다. 동일 점수만으로 응답을 제외하지 않습니다.</p>
@@ -174,7 +173,7 @@ async function control(operation){if(!PW||inFlight)return;stopRefresh();inFlight
 }
 $('btn-refresh').onclick=refresh;$('btn-start').onclick=()=>control('start');$('btn-pause').onclick=()=>control('pause');
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopRefresh();else if(PW)refresh();});
-$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','gender-table','age-summary','qctable','document-weighted','admin-mode','admin-status','updated','participant-filter-note','export-note','information-readiness','registration-availability'].forEach(x=>$(x).replaceChildren());$('participant-filter').value='all';$('storage-link').classList.add('hidden');$('storage-link').removeAttribute('href');controls();};
+$('btn-logout').onclick=()=>{sessionEpoch++;stopRefresh();inFlight=false;PW=null;DATA=null;$('view-dash').classList.add('hidden');$('view-login').classList.remove('hidden');['ptable','ctable','qchart','tiles','heatmap','stats-table','qctable','document-weighted','admin-mode','admin-status','updated','participant-filter-note','export-note','information-readiness','registration-availability'].forEach(x=>$(x).replaceChildren());$('participant-filter').value='all';$('storage-link').classList.add('hidden');$('storage-link').removeAttribute('href');controls();};
 function documentProgressState(n,target){
  if(!Number.isInteger(n)||!Number.isInteger(target)||n<0||target<0||n>target)return{key:'review',label:'배정·응답 수 확인 필요'};
  if(target===0)return{key:'unassigned',label:'미배정'};
@@ -197,16 +196,14 @@ function render(){renderRegistrationStatus();const d=SurveyMath.summary(DATA),ma
  $('qchart').innerHTML=SURVEY.questions.map((q,i)=>{const stat=d.questions[i];return '<div class="brow"><div class="bl">Q'+(i+1)+' '+esc(q.text)+'</div><div class="btrack"><div class="bfill" style="width:'+(stat.mean===null?0:stat.mean/5*100)+'%"></div></div><div class="bval">'+fmt(stat.mean)+'<small> (SD '+fmt(stat.sd)+', n='+stat.n+')</small></div></div>';}).join('');
  $('stats-table').innerHTML='<tr><th>문항</th><th>n</th><th>평균</th><th>SD</th><th>중앙값 [25%,75%]</th><th>4~5점 n (%)</th></tr>'+d.questions.map((s,i)=>'<tr><td>Q'+(i+1)+'</td><td>'+s.n+'</td><td>'+fmt(s.mean)+'</td><td>'+fmt(s.sd)+'</td><td>'+fmt(s.median)+' ['+fmt(s.p25)+', '+fmt(s.p75)+']</td><td>'+s.positive+' ('+fmt(s.n?s.positive/s.n*100:null)+'%)</td></tr>').join('');
  $('document-weighted').innerHTML='<tr><th>문항</th><th>응답 문서</th><th>동일 가중 평균</th><th>문서평균 간 SD</th><th>문서별 4~5점 비율 평균</th></tr>'+d.equalDocument.map((x,i)=>'<tr><td>Q'+(i+1)+'</td><td>'+x.n+'/100</td><td>'+fmt(x.mean)+'</td><td>'+fmt(x.sd)+'</td><td>'+fmt(x.positive===null?null:x.positive*100)+'%</td></tr>').join('');
- $('age-summary').textContent='나이: 응답 '+d.age.n+'명 / 미응답 '+d.ageMissing+'명 · 평균 '+fmt(d.age.mean)+'세 · SD '+fmt(d.age.sd)+' · 중앙값 '+fmt(d.age.median)+'세';
- $('gender-table').innerHTML='<tr><th>성별</th><th>명</th><th>비율(전체 등록자 기준)</th></tr>'+d.genders.map(x=>'<tr><td>'+esc(x.gender)+'</td><td>'+x.n+'</td><td>'+fmt(d.enrolled?x.n/d.enrolled*100:null)+'%</td></tr>').join('');
  $('qctable').innerHTML='<tr><th>항목</th><th>건수</th><th>설명</th></tr><tr><td>4문항 동일 점수</td><td>'+d.sameScore+'</td><td>모두 긍정 문항이므로 동일 점수만으로 모순·부적격·제외로 판단하지 않습니다.</td></tr>'+[...DATA.issues,...(DATA.consent_warnings||[])].map(x=>'<tr><td>'+esc(x.reason)+'</td><td>1</td><td>'+esc((map[x.participant_id]||x.participant_id)+' / '+x.case_code)+'</td></tr>').join('');
  const cs=DATA.responses.filter(r=>String(r.comment||'').trim());$('csub').textContent=cs.length+'건';$('ctable').innerHTML='<tr><th>참여자</th><th>문서</th><th>의견</th></tr>'+cs.map(r=>'<tr><td>'+esc(map[r.participant_id])+'</td><td>'+esc(r.case_code)+'</td><td>'+esc(r.comment)+'</td></tr>').join('');
- $('export-note').textContent=(DATA.issues.length||(DATA.consent_warnings||[]).length)?'CSV에는 확인이 필요한 원기록도 보존됩니다. 분석 전 기록을 확인하세요.':'참여자 CSV에는 연구용 ID·나이·성별·등록 시각·문서 제출 수·최종 제출 여부와 시각이 포함됩니다. 최종 제출 확인 CSV는 최종 제출 완료 기록만 담습니다. 동적등록 분석에는 추가 분석용 파일을 함께 사용합니다. 원점수만 저장하며 역채점하지 않습니다.';
+ $('export-note').textContent=(DATA.issues.length||(DATA.consent_warnings||[]).length)?'CSV에는 확인이 필요한 원기록도 보존됩니다. 분석 전 기록을 확인하세요.':'참여자 CSV에는 연구용 ID·등록 시각·문서 제출 수·최종 제출 여부와 시각이 포함됩니다. 이전 버전에서 수집된 항목은 내보내기 파일에 보존됩니다. 최종 제출 확인 CSV는 최종 제출 완료 기록만 담습니다. 동적등록 분석에는 추가 분석용 파일을 함께 사용합니다. 원점수만 저장하며 역채점하지 않습니다.';
 }
 function renderParticipants(d=SurveyMath.summary(DATA)){
  const participantMap=Object.fromEntries(DATA.participants.map(p=>[p.participant_id,p])),filter=$('participant-filter').value;
  const rows=DATA.assignments.filter(a=>a.is_active!==false).map(a=>{const p=participantMap[a.participant_id]||{},r=d.byParticipant[a.participant_id]||[],n=Number.isInteger(p.submitted_count)?p.submitted_count:r.length;return{a,p,r,n};}).filter(({p,n})=>filter==='all'||(filter==='finalized'?p.finalized===true:filter==='complete-open'?p.finalized!==true&&n===5:p.finalized!==true&&n>0&&n<5));
- $('ptable').innerHTML='<tr><th>ID</th><th>문서 제출 수</th><th>최종 제출</th><th>최종 제출 시각</th><th>현재 동의 상태</th><th>나이</th><th>성별</th><th>등록 시각</th><th>최근 응답</th></tr>'+rows.map(({a,p,r,n})=>{const last=r.map(x=>x.last_saved_at).sort().pop();return '<tr data-participant="'+esc(a.participant_id)+'"><td>'+esc(a.participant_id)+'</td><td>'+n+'/5<div class="mini"><div style="width:'+Math.min(n,5)*20+'%"></div></div></td><td>'+esc(p.finalized===true?'완료':n===5?'5건 제출·미마감':n>0?'일부 제출·미마감':'미마감')+'</td><td>'+esc(p.finalized_at?new Date(p.finalized_at).toLocaleString('ko-KR'):'—')+'</td><td>'+esc(({current_accepted:'동의함',current_declined:'동의하지 않음',withdrawn:'철회',outdated:'현재 설명문 재확인 필요',legacy_unverified:'기존 웹동의 미확인'})[p.consent_status]||'미등록')+'</td><td>'+esc(p.age??'—')+'</td><td>'+esc(p.gender||'—')+'</td><td>'+esc(p.registered_at?new Date(p.registered_at).toLocaleString('ko-KR'):'—')+'</td><td>'+esc(last?new Date(last).toLocaleString('ko-KR'):'—')+'</td></tr>';}).join('');
+ $('ptable').innerHTML='<tr><th>ID</th><th>문서 제출 수</th><th>최종 제출</th><th>최종 제출 시각</th><th>현재 동의 상태</th><th>등록 시각</th><th>최근 응답</th></tr>'+rows.map(({a,p,r,n})=>{const last=r.map(x=>x.last_saved_at).sort().pop();return '<tr data-participant="'+esc(a.participant_id)+'"><td>'+esc(a.participant_id)+'</td><td>'+n+'/5<div class="mini"><div style="width:'+Math.min(n,5)*20+'%"></div></div></td><td>'+esc(p.finalized===true?'완료':n===5?'5건 제출·미마감':n>0?'일부 제출·미마감':'미마감')+'</td><td>'+esc(p.finalized_at?new Date(p.finalized_at).toLocaleString('ko-KR'):'—')+'</td><td>'+esc(({current_accepted:'동의함',current_declined:'동의하지 않음',withdrawn:'철회',outdated:'현재 설명문 재확인 필요',legacy_unverified:'기존 웹동의 미확인'})[p.consent_status]||'미등록')+'</td><td>'+esc(p.registered_at?new Date(p.registered_at).toLocaleString('ko-KR'):'—')+'</td><td>'+esc(last?new Date(last).toLocaleString('ko-KR'):'—')+'</td></tr>';}).join('');
  $('participant-filter-note').textContent='현재 표시 '+rows.length+'명 · 최종 제출 여부는 서버의 최종 제출 기록을 기준으로 표시합니다.';
 }
 $('participant-filter').onchange=()=>{if(DATA)renderParticipants();};

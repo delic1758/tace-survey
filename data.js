@@ -13,12 +13,13 @@ const SurveyMath={
   for(const a of activeAssignments)for(const doc of a.documents)targets[doc.case_code]++;
   const documents=Object.keys(targets).sort(),expectedTotal=activeAssignments.reduce((n,a)=>n+a.documents.length,0);
   const questions=[1,2,3,4].map(i=>{const a=r.map(x=>x['Q'+i]).filter(v=>Number.isInteger(v)&&v>=1&&v<=5),s=this.stats(a);return{...s,counts:[1,2,3,4,5].map(v=>a.filter(x=>x===v).length),positive:a.filter(x=>x>=4).length};});
-  const age=this.stats(people.map(p=>p.age).filter(x=>Number.isInteger(x)&&x>=18&&x<=120));
-  const genders=['여성','남성','기타','응답 안 함'].map(g=>({gender:g,n:people.filter(p=>(p.gender||'응답 안 함')===g).length}));
+  const demographicPeople=people.filter(p=>p.demographics_collection!=='not_collected'),demographicsNotCollected=people.length-demographicPeople.length;
+  const age=this.stats(demographicPeople.map(p=>p.age).filter(x=>Number.isInteger(x)&&x>=18&&x<=120));
+  const genders=['여성','남성','기타','응답 안 함'].map(g=>({gender:g,n:demographicPeople.filter(p=>(p.gender||'응답 안 함')===g).length}));
   const documentMeans=documents.map(id=>{const rr=r.filter(x=>x.case_code===id);return{case_code:id,n:rr.length,target:targets[id],q:[1,2,3,4].map(i=>this.mean(rr.map(x=>x['Q'+i]))),positive:[1,2,3,4].map(i=>this.mean(rr.map(x=>x['Q'+i]>=4?1:0)))};});
   const summarizeDocs=docs=>[0,1,2,3].map(i=>({...this.stats(docs.map(x=>x.q[i])),positive:this.mean(docs.filter(x=>x.n>0).map(x=>x.positive[i]))}));
   const equalDocument=summarizeDocs(documentMeans),completeDocument=summarizeDocs(documentMeans.filter(x=>x.target>0&&x.n===x.target));
-  return{total:r.length,enrolled:people.length,finished:activeAssignments.filter(a=>(byParticipant[a.participant_id]||[]).length===a.documents.length).length,byParticipant,byDocument,documents,questions,mean4:this.mean(r.map(x=>(x.Q1+x.Q2+x.Q3+x.Q4)/4)),sameScore:r.filter(x=>new Set([x.Q1,x.Q2,x.Q3,x.Q4]).size===1).length,age,ageMissing:people.length-age.n,genders,documentMeans,targets,expectedTotal,equalDocument,completeDocument};
+  return{total:r.length,enrolled:people.length,finished:activeAssignments.filter(a=>(byParticipant[a.participant_id]||[]).length===a.documents.length).length,byParticipant,byDocument,documents,questions,mean4:this.mean(r.map(x=>(x.Q1+x.Q2+x.Q3+x.Q4)/4)),sameScore:r.filter(x=>new Set([x.Q1,x.Q2,x.Q3,x.Q4]).size===1).length,age,ageMissing:demographicPeople.length-age.n,demographicsCollected:demographicPeople.length,demographicsNotCollected,genders,documentMeans,targets,expectedTotal,equalDocument,completeDocument};
  },
  report(data){
   const d=this.summary(data),header=['구분','항목','통계량','값','분모','단위·기준'],rows=[];
@@ -32,9 +33,10 @@ const SurveyMath={
    s.counts.forEach((n,j)=>{add('점수분포',k,(j+1)+'점 빈도',n,s.n,'건');add('점수분포',k,(j+1)+'점 비율',s.n?n/s.n*100:null,s.n,'%');});
    add('점수분포',k,'4~5점 비율',s.n?s.positive/s.n*100:null,s.n,'%');
   }
-  add('참여자','나이','응답 수',d.age.n,d.enrolled,'명; 참여자당 한 번');add('참여자','나이','미응답 수',d.ageMissing,d.enrolled,'연령대에서 나이를 추정하지 않음');
+  add('참여자','나이·성별','미수집 수',d.demographicsNotCollected,d.enrolled,'현재 설문에서 질문하지 않음; 미응답으로 간주하지 않음');
+  add('참여자','나이','응답 수',d.age.n,d.demographicsCollected,'과거 수집 대상자; 참여자당 한 번');add('참여자','나이','미응답 수',d.ageMissing,d.demographicsCollected,'과거 수집 대상자 기준; 연령대에서 나이를 추정하지 않음');
   for(const [m,key] of [['평균','mean'],['표준편차','sd'],['중앙값','median'],['25백분위수','p25'],['75백분위수','p75'],['최솟값','min'],['최댓값','max']])add('참여자','나이',m,d.age[key],d.age.n,'만 나이(세)');
-  d.genders.forEach(x=>{add('참여자','성별',x.gender+' 빈도',x.n,d.enrolled,'명');add('참여자','성별',x.gender+' 비율',d.enrolled?x.n/d.enrolled*100:null,d.enrolled,'% · 미응답 포함 전체 등록자 분모');});
+  d.genders.forEach(x=>{add('참여자','성별',x.gender+' 빈도',x.n,d.demographicsCollected,'명');add('참여자','성별',x.gender+' 비율',d.demographicsCollected?x.n/d.demographicsCollected*100:null,d.demographicsCollected,'% · 과거 수집 대상자 분모; 현재 미수집 대상자 제외');});
   d.documentMeans.forEach(x=>x.q.forEach((m,i)=>add('문서별 평균',x.case_code,'Q'+(i+1),m,x.n,'이 문서 목표 '+x.target+'명; 미완료 여부는 분모 확인')));
   for(const [label,values] of [['응답 있는 문서',d.equalDocument],['배정 응답 완료 문서',d.completeDocument]])values.forEach((x,i)=>{
    const k='Q'+(i+1);add('문서동일가중',k,label+' 수',x.n,d.documents.length,'문서');
