@@ -19,7 +19,7 @@
   <div class="card"><h1>TACE 안내문 평가</h1><p>참여 방법을 선택해 주세요.</p>
     <button type="button" class="btn" id="btn-new-participant" disabled>처음 참여 (회원가입)</button>
     <button type="button" class="btn ghost" id="btn-existing">기존 아이디로 이어서 하기 (로그인)</button>
-    <div id="landing-status" class="notice" role="status">참여 접수 상태를 확인하고 있습니다.</div>
+    <div id="landing-status" class="notice" role="status">처음 참여하시면 회원가입을, 등록한 계정이 있으면 로그인을 선택해 주세요.</div>
     <button type="button" id="btn-retry-information" class="btn ghost hidden">접수 상태 다시 확인</button>
   </div>
 </div>
@@ -27,13 +27,13 @@
   <div class="topbar"><button type="button" class="text-btn" id="btn-information-back">← 첫 화면으로</button></div>
   <div class="card">
     <p>아래 설명문을 읽고 연구 참여 및 개인정보 수집·이용 동의 여부를 한 번만 선택해 주세요. 동의하면 학번과 전화번호로 계정을 등록할 수 있습니다.</p>
-    <div id="information-status" class="notice" role="status">접수 상태를 확인하는 동안 설명문을 읽고 입력할 수 있습니다.</div><button type="button" id="btn-retry-information-inline" class="btn ghost hidden">접수 상태 다시 확인</button>
+    <div id="information-status" class="notice hidden" role="status"></div><button type="button" id="btn-retry-information-inline" class="btn ghost hidden">접수 상태 다시 확인</button>
   </div>
   <article class="card information" aria-label="연구대상자 설명문 및 동의서">
     <div class="version" id="information-version"></div>
     <h1 id="information-title">연구대상자 설명문 및 동의서</h1><div id="information-body"></div>
   <section aria-label="연구 참여 및 개인정보 수집·이용 동의 여부 선택">
-    <fieldset class="choice-group"><legend id="privacy-title">연구 참여 및 개인정보 수집·이용에 동의하십니까?</legend><p class="choice-hint" id="privacy-detail"></p><div class="choice-row"><label><input type="radio" name="privacy" value="yes">동의함</label><label><input type="radio" name="privacy" value="no">동의하지 않음</label></div></fieldset>
+    <fieldset class="choice-group"><legend id="privacy-title">연구 참여 및 개인정보 수집·이용에 동의하십니까?</legend><div class="choice-row"><label><input type="radio" name="privacy" value="yes">동의함</label><label><input type="radio" name="privacy" value="no">동의하지 않음</label></div></fieldset>
     <div id="registration-fields" class="hidden">
       <h2>계정 등록</h2><p class="sub">아이디는 본인의 학번, 비밀번호는 본인의 전화번호입니다.</p>
       <label for="register-id">아이디 · 학번</label><input id="register-id" type="text" inputmode="numeric" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="본인 학번" aria-describedby="register-id-help register-id-status" disabled><p class="note" id="register-id-help">숫자만 입력할 수 있습니다. 학번 입력 후 Enter를 누르면 중복 여부를 확인합니다.</p><p id="register-id-status" class="note" role="status"></p>
@@ -125,7 +125,7 @@ function renderInformation(target,documentInfo){
  }else if(Array.isArray(documentInfo.sections)){for(const section of documentInfo.sections){if(section.title){const heading=document.createElement('h3');heading.textContent=section.title;target.append(heading);}const text=document.createElement('div');text.className='section-text';text.textContent=section.text||'';target.append(text);}}
 }
 function setInformation(documentInfo){
- info=documentInfo;for(const id of ['information-title','readonly-title']){const heading=$(id);heading.textContent=info.title||'연구대상자 설명문 및 동의서';heading.hidden=(info.fullText||info.full_text||'').includes(heading.textContent);}renderInformation($('information-body'),info);renderInformation($('readonly-body'),info);$('information-version').textContent='웹 동의 버전 '+(info.version||'미확인');$('privacy-title').textContent=info.combinedTitle||'연구 참여 및 개인정보 수집·이용에 동의하십니까?';$('privacy-detail').textContent=info.privacyText||'위 설명문을 읽고 연구 참여와 학번·전화번호 수집·이용에 대한 동의 여부를 한 번만 선택해 주세요.';
+ info=documentInfo;for(const id of ['information-title','readonly-title']){const heading=$(id);heading.textContent=info.title||'연구대상자 설명문 및 동의서';heading.hidden=(info.fullText||info.full_text||'').includes(heading.textContent);}renderInformation($('information-body'),info);renderInformation($('readonly-body'),info);$('information-version').textContent='웹 동의 버전 '+(info.version||'미확인');$('privacy-title').textContent=info.combinedTitle||'연구 참여 및 개인정보 수집·이용에 동의하십니까?';
 }
 function requireCurrentInformation(documentInfo){
  const hash=documentInfo&&(documentInfo.content_hash||documentInfo.hash),bundledHash=typeof CONSENT_INFO==='undefined'?'':CONSENT_INFO.content_hash||CONSENT_INFO.hash;
@@ -140,9 +140,8 @@ function updateConsentControls(){
 async function loadInformation(){
  if(informationLoading)return;informationLoading=true;const generation=++informationGeneration;informationAbort=new AbortController();const signal=informationAbort.signal;
  for(const id of ['btn-retry-information','btn-retry-information-inline'])$(id).classList.add('hidden');
- const message='접수 상태를 확인하는 동안 설명문을 읽고 입력할 수 있습니다. 확인이 끝나면 등록할 수 있습니다.';
- serverReady=false;registrationOpen=false;infoConnected=false;$('landing-status').textContent=message;$('information-status').textContent=message;$('information-status').classList.remove('hidden');updateConsentControls();
- try{const result=await api({action:'information'},{signal,onSlow:()=>{if(generation!==informationGeneration)return;for(const id of ['landing-status','information-status'])$(id).textContent='접수 상태 확인이 지연되고 있습니다. 입력한 내용을 유지하고 잠시 기다려 주세요.';}});if(generation!==informationGeneration)return;
+ serverReady=false;registrationOpen=false;infoConnected=false;$('landing-status').textContent='처음 참여하시면 회원가입을, 등록한 계정이 있으면 로그인을 선택해 주세요.';$('information-status').textContent='';$('information-status').classList.add('hidden');updateConsentControls();
+ try{const result=await api({action:'information'},{signal});if(generation!==informationGeneration)return;
   if(!result.information||!result.information.version||!(result.information.content_hash||result.information.hash)||!(result.information.fullText||result.information.full_text||result.information.sections?.length))throw Error('설명문을 확인할 수 없습니다. 연구자에게 문의해 주세요.');requireCurrentInformation(result.information);setInformation(result.information);infoConnected=true;serverReady=result.information.ready===true;registrationOpen=result.registration_open===true;
   let message;if(!serverReady)message='현재 참여 준비 중입니다. 연구 설명문과 참여 조건이 확정되면 등록할 수 있습니다.';else if(registrationOpen)message='처음 참여하시면 회원가입을, 등록한 계정이 있으면 로그인을 선택해 주세요.';else if(['ready','not_started'].includes(result.collection_state))message='아직 참여 접수가 시작되지 않았습니다. 기존 아이디로 로그인할 수 있습니다.';else if(result.collection_state==='paused')message='현재 참여 접수가 일시정지되어 등록할 수 없습니다. 기존 아이디로 로그인할 수 있습니다.';else if(result.collection_state==='closed')message='참여 접수가 마감되어 등록할 수 없습니다. 기존 아이디로 로그인할 수 있습니다.';else message='신규 회원가입 정원이 마감되었습니다. 기존 아이디로 로그인할 수 있습니다.';
   $('landing-status').textContent=message;$('information-status').textContent=message;$('information-status').classList.toggle('hidden',serverReady&&registrationOpen);
